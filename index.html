@@ -254,6 +254,10 @@ async function getValidToken() {
       localStorage.setItem('strava_refresh_token', data.refresh_token || refresh);
       return data.access_token;
     }
+    // リフレッシュ失敗時はトークンをクリア
+    localStorage.removeItem('strava_token');
+    localStorage.removeItem('strava_refresh_token');
+    localStorage.removeItem('strava_token_expiry');
   } catch(e) {}
   return null;
 }
@@ -272,7 +276,13 @@ async function loadStravaData(token) {
         headers: { 'Authorization': 'Bearer ' + validToken }
       });
       if (!res.ok) {
-        if (res.status === 401) { localStorage.removeItem('strava_token'); showScreen('connect'); return; }
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('strava_token');
+          localStorage.removeItem('strava_refresh_token');
+          localStorage.removeItem('strava_token_expiry');
+          showScreen('connect');
+          return;
+        }
         break;
       }
       const batch = await res.json();
