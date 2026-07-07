@@ -204,7 +204,7 @@ async function startStravaAuth() {
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
     scope: 'read,activity:read_all',
-    approval_prompt: 'auto'
+    approval_prompt: 'force'
   });
   window.location.href = 'https://www.strava.com/oauth/authorize?' + params.toString();
 }
