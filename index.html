@@ -129,6 +129,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
   <div class="header-right" id="header-right"></div>
 </header>
 
+<!-- CONNECT -->
 <div id="screen-connect">
   <div class="connect-card">
     <div class="connect-icon">📊</div>
@@ -148,6 +149,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
   </div>
 </div>
 
+<!-- OAUTH PROCESSING -->
 <div id="screen-oauth" style="display:none">
   <div class="oauth-box">
     <div class="spinner"></div>
@@ -155,6 +157,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
   </div>
 </div>
 
+<!-- DASHBOARD -->
 <main id="screen-dashboard" style="display:none">
   <div class="status-bar">
     <h2 id="dash-title">トレーニング分析</h2>
@@ -184,7 +187,6 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
 // ─────────────────────────────────────────────
 const screens = ['connect','oauth','dashboard'];
 function showScreen(name) {
-  console.log("画面切り替え:", name);
   screens.forEach(s => {
     const el = document.getElementById('screen-' + s);
     if (el) el.style.display = s === name ? (s === 'dashboard' ? 'block' : 'flex') : 'none';
@@ -210,10 +212,15 @@ async function startStravaAuth() {
 async function handleOAuthCallback(code) {
   showScreen('oauth');
   try {
-    const res = await fetch('/.netlify/functions/strava-token', {
+    const res = await fetch('https://www.strava.com/oauth/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, grant_type: 'authorization_code' })
+      body: JSON.stringify({
+        client_id: STRAVA_CLIENT_ID,
+        client_secret: '86ebb4132af56cf615d69f62d861c03c090eb530',
+        code: code,
+        grant_type: 'authorization_code'
+      })
     });
     const data = await res.json();
     if (data.access_token) {
@@ -234,89 +241,74 @@ async function handleOAuthCallback(code) {
 }
 
 async function getValidToken() {
-  console.log("トークン検証中...");
   const token = localStorage.getItem('strava_token');
   const expiry = parseInt(localStorage.getItem('strava_token_expiry') || '0');
   const refresh = localStorage.getItem('strava_refresh_token');
-  if (Date.now() / 1000 < expiry - 300) {
-    console.log("既存のトークンは有効です");
-    return token;
-  }
-  if (!refresh) {
-    console.log("リフレッシュトークンがありません");
-    return null;
-  }
+  if (Date.now() / 1000 < expiry - 300) return token;
+  if (!refresh) return null;
   try {
-    console.log("トークンが期限切れのため、リフレッシュを試みます...");
-    const res = await fetch('/.netlify/functions/strava-token', {
+    const res = await fetch('https://www.strava.com/oauth/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: refresh })
+      body: JSON.stringify({
+        client_id: STRAVA_CLIENT_ID,
+        client_secret: '86ebb4132af56cf615d69f62d861c03c090eb530',
+        grant_type: 'refresh_token',
+        refresh_token: refresh
+      })
     });
     const data = await res.json();
     if (data.access_token) {
       localStorage.setItem('strava_token', data.access_token);
       localStorage.setItem('strava_token_expiry', data.expires_at || 0);
       localStorage.setItem('strava_refresh_token', data.refresh_token || refresh);
-      console.log("トークンの更新に成功しました");
       return data.access_token;
     }
-    console.log("トークンの更新に失敗しました。認証情報をクリアします。");
     localStorage.removeItem('strava_token');
     localStorage.removeItem('strava_refresh_token');
     localStorage.removeItem('strava_token_expiry');
-  } catch(e) {
-    console.error("トークン更新エラー:", e);
-  }
+  } catch(e) {}
   return null;
 }
 
 async function loadStravaData(token) {
   showScreen('oauth');
-  console.log("Stravaデータ取得処理を開始...");
   const validToken = token || await getValidToken();
-  
-  console.log("🚨【デバッグ】トークンの文字データ型は:", typeof validToken);
-  console.log("🚨【デバッグ】トークンの文字数は:", validToken ? validToken.length : 0);
-  console.log("🚨【デバッグ】トークンの生の文字列中身 ➔", validToken);
-
-  if (!validToken || validToken === "undefined" || validToken.includes("object")) { 
-    console.log("❌ 不正なトークンを検出したため処理を中断します");
-    showScreen('connect'); 
-    return; 
-  }
-  
+  if (!validToken) { showScreen('connect'); return; }
   const days = 120;
   const after = Math.floor((Date.now() / 1000) - days * 86400);
   let activities = [];
   let page = 1;
   try {
-    while (page <= 20) {
-      console.log(`APIリクエスト中... ページ: ${page}`);
+    while (true) {
       const res = await fetch(`https://www.strava.com/api/v3/athlete/activities?after=${after}&per_page=100&page=${page}`, {
         headers: { 'Authorization': 'Bearer ' + validToken }
       });
       if (!res.ok) {
-        console.log(`APIエラー応答: ステータス ${res.status}`);
-        if (res.status === 401 || res.status === 403) {
+        const errBody = await res.text();
+        if (res.status === 401) {
           localStorage.removeItem('strava_token');
           localStorage.removeItem('strava_refresh_token');
           localStorage.removeItem('strava_token_expiry');
           showScreen('connect');
           return;
         }
+        if (res.status === 403) {
+          // 403: スコープ不足の可能性。データが取れた分だけ表示する
+          console.error('Strava 403:', errBody);
+          break;
+        }
         break;
       }
       const batch = await res.json();
-      console.log(`データ受信: ${batch.length}件`);
       if (!Array.isArray(batch) || batch.length === 0) break;
       activities = activities.concat(batch);
+      if (batch.length < 100) break;
       page++;
     }
   } catch(e) {
     console.error('Strava fetch error:', e);
   }
-  console.log(`全データ取得完了。合計件数: ${activities.length}件。描画を開始します。`);
   const normalized = activities.map(a => ({
     type: stravaTypeToJa(a.type),
     date: a.start_date_local.slice(0, 10),
@@ -371,7 +363,7 @@ function parseGarminCSV(text) {
     const p20 = parseFloat(get('最大平均パワー（20 分）')) || null;
     activities.push({
       type: get('アクティビティタイプ'),
-      date: (get('日付') || '').slice(0, 10).replace(/\//g, '-'),
+      date: (get('日付') || '').slice(0, 10),
       dist: dist,
       time: timeMin,
       avgHR: parseInt(get('平均心拍数')) || null,
@@ -396,11 +388,6 @@ function smartSplit(line) {
   return res;
 }
 
-// ─────────────────────────────────────────────
-// ANALYTICS ENGINE
-// ─────────────────────────────────────────────
-const LTHR = 167, rFTP = 280, FTP_BIKE = 162;
-
 function parseTime(s) {
   if (!s || s === '--') return 0;
   const p = s.split(':').map(parseFloat);
@@ -408,6 +395,11 @@ function parseTime(s) {
   if (p.length === 2) return p[0] + p[1]/60;
   return 0;
 }
+
+// ─────────────────────────────────────────────
+// ANALYTICS ENGINE
+// ─────────────────────────────────────────────
+const LTHR = 167, rFTP = 280, FTP_BIKE = 162;
 
 function estimateTSS(a) {
   if (a.tss > 0) return a.tss;
@@ -437,11 +429,13 @@ function estimateVO2(a) {
 }
 
 function buildTimeSeries(activities, startDate, endDate) {
+  // 今日まで含むよう期間を拡張
   const today = new Date();
-  today.setHours(12,0,0,0);
+  today.setHours(12,0,0,0); // 正午に固定してタイムゾーン問題を回避
   const todayStr = today.toISOString().slice(0,10);
   const allStart = (startDate < endDate ? startDate : endDate) || todayStr;
 
+  // 全日付リスト（最古〜今日）
   const allDates = [];
   const da = new Date(allStart + 'T12:00:00');
   const de = new Date(todayStr + 'T12:00:00');
@@ -468,8 +462,9 @@ function buildTimeSeries(activities, startDate, endDate) {
     }
   });
 
+  // 全期間でCTL/ATLを積み上げ（初期値は0から自然収束させる）
   const ctl=[], atl=[], tsb=[], run=[], bike=[], other=[], vo2=[], ftp=[];
-  const dates = allDates;
+  const dates = allDates; // 表示用は全期間
   let ctlV=0, atlV=0;
   dates.forEach(d => {
     const dt = dayMap[d] || {run:0,bike:0,other:0,vo2:null,ftp:null};
@@ -483,6 +478,7 @@ function buildTimeSeries(activities, startDate, endDate) {
     vo2.push(dt.vo2); ftp.push(dt.ftp);
   });
 
+  // smoothed vo2
   const vo2MA = vo2.map((v,i) => {
     const w = vo2.slice(Math.max(0,i-6),i+1).filter(x=>x!==null);
     return w.length ? +(w.reduce((a,b)=>a+b,0)/w.length).toFixed(1) : null;
@@ -517,6 +513,7 @@ function renderDashboard(activities, sourceLabel) {
   const ftpVals = ts.ftp.filter(x=>x!==null);
   const curFTP = ftpVals.length ? Math.max(...ftpVals) : null;
 
+  // KPI cards
   const tsbColor = curTSB > 5 ? 'good' : curTSB > -10 ? '' : 'bad';
   const tsbLabel = curTSB > 5 ? 'レース準備OK' : curTSB > -10 ? '通常トレーニング' : '疲労蓄積中';
   document.getElementById('kpi-grid').innerHTML = `
@@ -527,9 +524,11 @@ function renderDashboard(activities, sourceLabel) {
     <div class="kpi"><div class="kpi-label">VO2max 推定</div><div class="kpi-value">${curVO2 ? curVO2 : '--'}</div><div class="kpi-sub">${curVO2 ? 'mL/kg/min' : '計測データ不足'}</div></div>
   `;
 
+  // Advice
   generateAdvice({ curCTL, curATL, curTSB, curVO2, curFTP, activities: sorted });
+
+  // Charts
   buildChartUI(ts);
-  console.log("ダッシュボード描画処理完了");
 }
 
 // ─────────────────────────────────────────────
@@ -783,6 +782,7 @@ function renderChart(id) {
   }
 }
 
+// Store raw for HR chart
 const _origRender = renderDashboard;
 window.renderDashboard = function(activities, sourceLabel) {
   currentTS = null;
@@ -804,28 +804,15 @@ function disconnect() {
 // INIT — check OAuth callback or saved token
 // ─────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
-  console.log("アプリ起動: ログを確認します...");
   const params = new URLSearchParams(window.location.search);
-  
-  if (params.get('reset')) {
-    console.log("強制リセットコマンドを検出。ストレージを消去します。");
-    localStorage.clear();
-    window.history.replaceState({}, '', window.location.pathname);
-    showScreen('connect');
-    return;
-  }
-
   const code = params.get('code');
   const savedToken = localStorage.getItem('strava_token');
 
   if (code) {
-    console.log("Strava認証コードを検出しました。認証処理に移行。");
     await handleOAuthCallback(code);
   } else if (savedToken) {
-    console.log("保存されたトークンを発見。自動ログインを試みます。");
     await loadStravaData(null);
   } else {
-    console.log("初期状態: 接続画面を表示します。");
     showScreen('connect');
   }
 });
