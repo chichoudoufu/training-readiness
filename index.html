@@ -203,7 +203,7 @@ async function startStravaAuth() {
     client_id: STRAVA_CLIENT_ID,
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
-    scope: 'read,activity:read_all',
+    scope: 'read,activity:read,activity:read_all',
     approval_prompt: 'force'
   });
   window.location.href = 'https://www.strava.com/oauth/authorize?' + params.toString();
@@ -212,10 +212,15 @@ async function startStravaAuth() {
 async function handleOAuthCallback(code) {
   showScreen('oauth');
   try {
-    const res = await fetch('/.netlify/functions/strava-token', {
+    const res = await fetch('https://www.strava.com/oauth/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, grant_type: 'authorization_code' })
+      body: JSON.stringify({
+        client_id: STRAVA_CLIENT_ID,
+        client_secret: '86ebb4132af56cf615d69f62d861c03c090eb530',
+        code: code,
+        grant_type: 'authorization_code'
+      })
     });
     const data = await res.json();
     if (data.access_token) {
@@ -242,10 +247,15 @@ async function getValidToken() {
   if (Date.now() / 1000 < expiry - 300) return token;
   if (!refresh) return null;
   try {
-    const res = await fetch('/.netlify/functions/strava-token', {
+    const res = await fetch('https://www.strava.com/oauth/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: refresh })
+      body: JSON.stringify({
+        client_id: STRAVA_CLIENT_ID,
+        client_secret: '86ebb4132af56cf615d69f62d861c03c090eb530',
+        grant_type: 'refresh_token',
+        refresh_token: refresh
+      })
     });
     const data = await res.json();
     if (data.access_token) {
@@ -254,7 +264,6 @@ async function getValidToken() {
       localStorage.setItem('strava_refresh_token', data.refresh_token || refresh);
       return data.access_token;
     }
-    // リフレッシュ失敗時はトークンをクリア
     localStorage.removeItem('strava_token');
     localStorage.removeItem('strava_refresh_token');
     localStorage.removeItem('strava_token_expiry');
@@ -276,12 +285,18 @@ async function loadStravaData(token) {
         headers: { 'Authorization': 'Bearer ' + validToken }
       });
       if (!res.ok) {
-        if (res.status === 401 || res.status === 403) {
+        const errBody = await res.text();
+        if (res.status === 401) {
           localStorage.removeItem('strava_token');
           localStorage.removeItem('strava_refresh_token');
           localStorage.removeItem('strava_token_expiry');
           showScreen('connect');
           return;
+        }
+        if (res.status === 403) {
+          // 403: スコープ不足の可能性。データが取れた分だけ表示する
+          console.error('Strava 403:', errBody);
+          break;
         }
         break;
       }
