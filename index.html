@@ -262,19 +262,27 @@ async function loadStravaData(token) {
   showScreen('oauth');
   const validToken = token || await getValidToken();
   if (!validToken) { showScreen('connect'); return; }
-  const days = 150;
+  const days = 120;
   const after = Math.floor((Date.now() / 1000) - days * 86400);
   let activities = [];
   let page = 1;
-  while (true) {
-    const res = await fetch(`https://www.strava.com/api/v3/athlete/activities?after=${after}&per_page=100&page=${page}`, {
-      headers: { 'Authorization': 'Bearer ' + validToken }
-    });
-    const batch = await res.json();
-    if (!Array.isArray(batch) || batch.length === 0) break;
-    activities = activities.concat(batch);
-    if (batch.length < 100) break;
-    page++;
+  try {
+    while (true) {
+      const res = await fetch(`https://www.strava.com/api/v3/athlete/activities?after=${after}&per_page=100&page=${page}`, {
+        headers: { 'Authorization': 'Bearer ' + validToken }
+      });
+      if (!res.ok) {
+        if (res.status === 401) { localStorage.removeItem('strava_token'); showScreen('connect'); return; }
+        break;
+      }
+      const batch = await res.json();
+      if (!Array.isArray(batch) || batch.length === 0) break;
+      activities = activities.concat(batch);
+      if (batch.length < 100) break;
+      page++;
+    }
+  } catch(e) {
+    console.error('Strava fetch error:', e);
   }
   const normalized = activities.map(a => ({
     type: stravaTypeToJa(a.type),
@@ -396,15 +404,20 @@ function estimateVO2(a) {
 }
 
 function buildTimeSeries(activities, startDate, endDate) {
-  // CTL/ATLを正確にするため、取得データ全期間（最古〜今日）で積み上げ
-  const today = new Date().toISOString().slice(0,10);
-  const allStart = startDate < endDate ? startDate : endDate;
+  // 今日まで含むよう期間を拡張
+  const today = new Date();
+  today.setHours(12,0,0,0); // 正午に固定してタイムゾーン問題を回避
+  const todayStr = today.toISOString().slice(0,10);
+  const allStart = (startDate < endDate ? startDate : endDate) || todayStr;
 
-  // 全日付リスト（最古のアクティビティ〜今日）
+  // 全日付リスト（最古〜今日）
   const allDates = [];
-  const da = new Date(allStart);
-  const de = new Date(today);
-  while (da <= de) { allDates.push(da.toISOString().slice(0,10)); da.setDate(da.getDate()+1); }
+  const da = new Date(allStart + 'T12:00:00');
+  const de = new Date(todayStr + 'T12:00:00');
+  while (da <= de) {
+    allDates.push(da.toISOString().slice(0,10));
+    da.setDate(da.getDate()+1);
+  }
 
   const dayMap = {};
   activities.forEach(a => {
