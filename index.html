@@ -129,6 +129,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
   <div class="header-right" id="header-right"></div>
 </header>
 
+<!-- CONNECT -->
 <div id="screen-connect">
   <div class="connect-card">
     <div class="connect-icon">📊</div>
@@ -148,6 +149,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
   </div>
 </div>
 
+<!-- OAUTH PROCESSING -->
 <div id="screen-oauth" style="display:none">
   <div class="oauth-box">
     <div class="spinner"></div>
@@ -155,6 +157,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
   </div>
 </div>
 
+<!-- DASHBOARD -->
 <main id="screen-dashboard" style="display:none">
   <div class="status-bar">
     <h2 id="dash-title">トレーニング分析</h2>
@@ -200,7 +203,7 @@ async function startStravaAuth() {
     client_id: STRAVA_CLIENT_ID,
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
-    scope: 'read,activity:read_all',
+    scope: 'read,activity:read,activity:read_all',
     approval_prompt: 'force'
   });
   window.location.href = 'https://www.strava.com/oauth/authorize?' + params.toString();
@@ -209,10 +212,15 @@ async function startStravaAuth() {
 async function handleOAuthCallback(code) {
   showScreen('oauth');
   try {
-    const res = await fetch('/.netlify/functions/strava-token', {
+    const res = await fetch('https://www.strava.com/oauth/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, grant_type: 'authorization_code' })
+      body: JSON.stringify({
+        client_id: STRAVA_CLIENT_ID,
+        client_secret: '86ebb4132af56cf615d69f62d861c03c090eb530',
+        code: code,
+        grant_type: 'authorization_code'
+      })
     });
     const data = await res.json();
     if (data.access_token) {
@@ -239,10 +247,15 @@ async function getValidToken() {
   if (Date.now() / 1000 < expiry - 300) return token;
   if (!refresh) return null;
   try {
-    const res = await fetch('/.netlify/functions/strava-token', {
+    const res = await fetch('https://www.strava.com/oauth/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: refresh })
+      body: JSON.stringify({
+        client_id: STRAVA_CLIENT_ID,
+        client_secret: '86ebb4132af56cf615d69f62d861c03c090eb530',
+        grant_type: 'refresh_token',
+        refresh_token: refresh
+      })
     });
     const data = await res.json();
     if (data.access_token) {
@@ -267,24 +280,30 @@ async function loadStravaData(token) {
   let activities = [];
   let page = 1;
   try {
-    // 【重要修正】無限フリーズ防止のため最大20ページ（2000件）の安全弁を設定
-    while (page <= 20) {
+    while (true) {
       const res = await fetch(`https://www.strava.com/api/v3/athlete/activities?after=${after}&per_page=100&page=${page}`, {
         headers: { 'Authorization': 'Bearer ' + validToken }
       });
       if (!res.ok) {
-        if (res.status === 401 || res.status === 403) {
+        const errBody = await res.text();
+        if (res.status === 401) {
           localStorage.removeItem('strava_token');
           localStorage.removeItem('strava_refresh_token');
           localStorage.removeItem('strava_token_expiry');
           showScreen('connect');
           return;
         }
+        if (res.status === 403) {
+          // 403: スコープ不足の可能性。データが取れた分だけ表示する
+          console.error('Strava 403:', errBody);
+          break;
+        }
         break;
       }
       const batch = await res.json();
       if (!Array.isArray(batch) || batch.length === 0) break;
       activities = activities.concat(batch);
+      if (batch.length < 100) break;
       page++;
     }
   } catch(e) {
@@ -344,7 +363,7 @@ function parseGarminCSV(text) {
     const p20 = parseFloat(get('最大平均パワー（20 分）')) || null;
     activities.push({
       type: get('アクティビティタイプ'),
-      date: (get('日付') || '').slice(0, 10).replace(/\//g, '-'),
+      date: (get('日付') || '').slice(0, 10),
       dist: dist,
       time: timeMin,
       avgHR: parseInt(get('平均心拍数')) || null,
@@ -410,11 +429,13 @@ function estimateVO2(a) {
 }
 
 function buildTimeSeries(activities, startDate, endDate) {
+  // 今日まで含むよう期間を拡張
   const today = new Date();
-  today.setHours(12,0,0,0);
+  today.setHours(12,0,0,0); // 正午に固定してタイムゾーン問題を回避
   const todayStr = today.toISOString().slice(0,10);
   const allStart = (startDate < endDate ? startDate : endDate) || todayStr;
 
+  // 全日付リスト（最古〜今日）
   const allDates = [];
   const da = new Date(allStart + 'T12:00:00');
   const de = new Date(todayStr + 'T12:00:00');
@@ -441,8 +462,9 @@ function buildTimeSeries(activities, startDate, endDate) {
     }
   });
 
+  // 全期間でCTL/ATLを積み上げ（初期値は0から自然収束させる）
   const ctl=[], atl=[], tsb=[], run=[], bike=[], other=[], vo2=[], ftp=[];
-  const dates = allDates;
+  const dates = allDates; // 表示用は全期間
   let ctlV=0, atlV=0;
   dates.forEach(d => {
     const dt = dayMap[d] || {run:0,bike:0,other:0,vo2:null,ftp:null};
@@ -456,6 +478,7 @@ function buildTimeSeries(activities, startDate, endDate) {
     vo2.push(dt.vo2); ftp.push(dt.ftp);
   });
 
+  // smoothed vo2
   const vo2MA = vo2.map((v,i) => {
     const w = vo2.slice(Math.max(0,i-6),i+1).filter(x=>x!==null);
     return w.length ? +(w.reduce((a,b)=>a+b,0)/w.length).toFixed(1) : null;
@@ -490,6 +513,7 @@ function renderDashboard(activities, sourceLabel) {
   const ftpVals = ts.ftp.filter(x=>x!==null);
   const curFTP = ftpVals.length ? Math.max(...ftpVals) : null;
 
+  // KPI cards
   const tsbColor = curTSB > 5 ? 'good' : curTSB > -10 ? '' : 'bad';
   const tsbLabel = curTSB > 5 ? 'レース準備OK' : curTSB > -10 ? '通常トレーニング' : '疲労蓄積中';
   document.getElementById('kpi-grid').innerHTML = `
@@ -500,7 +524,10 @@ function renderDashboard(activities, sourceLabel) {
     <div class="kpi"><div class="kpi-label">VO2max 推定</div><div class="kpi-value">${curVO2 ? curVO2 : '--'}</div><div class="kpi-sub">${curVO2 ? 'mL/kg/min' : '計測データ不足'}</div></div>
   `;
 
+  // Advice
   generateAdvice({ curCTL, curATL, curTSB, curVO2, curFTP, activities: sorted });
+
+  // Charts
   buildChartUI(ts);
 }
 
@@ -625,7 +652,7 @@ function renderChart(id) {
     charts.c1 = new Chart(document.getElementById('c1'), {
       type:'line',
       data:{labels:ts.labels,datasets:[
-        {label:'CTL',data:ts.ctl,borderColor:#5b8df6',backgroundColor:'rgba(91,141,246,0.08)',tension:0.4,fill:true,pointRadius:2,borderWidth:2,yAxisID:'yL'},
+        {label:'CTL',data:ts.ctl,borderColor:'#5b8df6',backgroundColor:'rgba(91,141,246,0.08)',tension:0.4,fill:true,pointRadius:2,borderWidth:2,yAxisID:'yL'},
         {label:'ATL',data:ts.atl,borderColor:'#f06060',backgroundColor:'rgba(240,96,96,0.05)',tension:0.4,fill:true,pointRadius:2,borderWidth:2,yAxisID:'yL'},
         {label:'TSB',data:ts.tsb,borderColor:'#3ecf8e',backgroundColor:'transparent',tension:0.4,borderDash:[5,3],pointRadius:2,borderWidth:2,yAxisID:'yR'},
       ]},
@@ -755,6 +782,7 @@ function renderChart(id) {
   }
 }
 
+// Store raw for HR chart
 const _origRender = renderDashboard;
 window.renderDashboard = function(activities, sourceLabel) {
   currentTS = null;
