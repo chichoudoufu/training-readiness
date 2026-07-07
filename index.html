@@ -201,7 +201,8 @@ async function startStravaAuth() {
     client_id: STRAVA_CLIENT_ID,
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
-    scope: 'read,activity:read_all',
+    // 【修正箇所】一般公開・非公開データ両方を網羅するスコープに拡大
+    scope: 'read,activity:read,activity:read_all',
     approval_prompt: 'force'
   });
   window.location.href = 'https://www.strava.com/oauth/authorize?' + params.toString();
@@ -275,11 +276,20 @@ async function loadStravaData(token) {
   showScreen('oauth');
   console.log("Stravaデータ取得処理を開始...");
   const validToken = token || await getValidToken();
-  if (!validToken) { 
-    console.log("有効なトークンがないため、接続画面へ戻ります");
+  
+  // 【重要デバッグ用ログ】裏側から届いたトークンの「型」「最初の数文字」「文字数」を監視
+  console.log("🔑 取得トークンの判定:", {
+    type: typeof validToken,
+    preview: validToken ? validToken.slice(0, 6) + "..." : "空",
+    length: validToken ? validToken.length : 0
+  });
+
+  if (!validToken || validToken === "undefined" || validToken.includes("object")) { 
+    console.log("❌ 不正なトークン（中身が空、またはエラーオブジェクト）を検出したため処理を中断します");
     showScreen('connect'); 
     return; 
   }
+  
   const days = 120;
   const after = Math.floor((Date.now() / 1000) - days * 86400);
   let activities = [];
@@ -403,6 +413,15 @@ function parseTime(s) {
   return 0;
 }
 
+// ─────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────
+let charts = {};
+function destroyCharts() {
+  Object.values(charts).forEach(c => { try { c.destroy(); } catch(e){} });
+  charts = {};
+}
+
 function estimateTSS(a) {
   if (a.tss > 0) return a.tss;
   const h = a.time / 60;
@@ -483,15 +502,6 @@ function buildTimeSeries(activities, startDate, endDate) {
   });
 
   return { dates, labels: dates.map(d=>d.slice(5)), ctl, atl, tsb, run, bike, other, vo2, vo2MA, ftp };
-}
-
-// ─────────────────────────────────────────────
-// RENDER
-// ─────────────────────────────────────────────
-let charts = {};
-function destroyCharts() {
-  Object.values(charts).forEach(c => { try { c.destroy(); } catch(e){} });
-  charts = {};
 }
 
 function renderDashboard(activities, sourceLabel) {
@@ -589,19 +599,6 @@ function markdownToHtml(text) {
     .replace(/\n/g, '<br>')
     .replace(/^\d+\.\s/gm, '');
 }
-
-// ─────────────────────────────────────────────
-// CHARTS
-// ─────────────────────────────────────────────
-const CHART_TABS = [
-  { id: 'pmc', label: 'PMC' },
-  { id: 'tss', label: 'デイリーTSS' },
-  { id: 'vo2', label: 'VO2max推定' },
-  { id: 'ftp', label: 'FTP推定' },
-  { id: 'hr',  label: '心拍' },
-];
-let currentTab = 'pmc';
-let currentTS = null;
 
 function buildChartUI(ts) {
   currentTS = ts;
@@ -802,7 +799,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   console.log("アプリ起動: ログを確認します...");
   const params = new URLSearchParams(window.location.search);
   
-  // 安全弁: URLに ?reset=1 をつけるとメモリを初期化する機能
   if (params.get('reset')) {
     console.log("強制リセットコマンドを検出。ストレージを消去します。");
     localStorage.clear();
