@@ -262,7 +262,7 @@ async function loadStravaData(token) {
   showScreen('oauth');
   const validToken = token || await getValidToken();
   if (!validToken) { showScreen('connect'); return; }
-  const days = 60;
+  const days = 150;
   const after = Math.floor((Date.now() / 1000) - days * 86400);
   let activities = [];
   let page = 1;
@@ -396,10 +396,15 @@ function estimateVO2(a) {
 }
 
 function buildTimeSeries(activities, startDate, endDate) {
-  const dates = [];
-  const d = new Date(startDate);
-  const end = new Date(endDate);
-  while (d <= end) { dates.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  // CTL/ATLを正確にするため、取得データ全期間（最古〜今日）で積み上げ
+  const today = new Date().toISOString().slice(0,10);
+  const allStart = startDate < endDate ? startDate : endDate;
+
+  // 全日付リスト（最古のアクティビティ〜今日）
+  const allDates = [];
+  const da = new Date(allStart);
+  const de = new Date(today);
+  while (da <= de) { allDates.push(da.toISOString().slice(0,10)); da.setDate(da.getDate()+1); }
 
   const dayMap = {};
   activities.forEach(a => {
@@ -419,8 +424,10 @@ function buildTimeSeries(activities, startDate, endDate) {
     }
   });
 
+  // 全期間でCTL/ATLを積み上げ（初期値は0から自然収束させる）
   const ctl=[], atl=[], tsb=[], run=[], bike=[], other=[], vo2=[], ftp=[];
-  let ctlV=40, atlV=42;
+  const dates = allDates; // 表示用は全期間
+  let ctlV=0, atlV=0;
   dates.forEach(d => {
     const dt = dayMap[d] || {run:0,bike:0,other:0,vo2:null,ftp:null};
     const tot = dt.run+dt.bike+dt.other;
