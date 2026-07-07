@@ -133,7 +133,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
   <div class="connect-card">
     <div class="connect-icon">📊</div>
     <h1>トレーニング分析</h1>
-    <p>StravaまたはGarminのデータを接続して<br>PMC・VO2max・FTPの推移を分析します</p>
+    <p>StravaまたはGarmin of データを接続して<br>PMC・VO2max・FTPの推移を分析します</p>
     <div class="connect-btns">
       <button class="btn-strava" onclick="startStravaAuth()">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 2 12.872h4.168"/></svg>
@@ -179,24 +179,26 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
 </div>
 
 <script>
-// ─────────────────────────────────────────────
-// SCREEN ROUTING
-// ─────────────────────────────────────────────
-const screens = ['connect','oauth','dashboard'];
+const screens = ['connect', 'oauth', 'dashboard'];
+
 function showScreen(name) {
   console.log("画面切り替え:", name);
-  screens.forEach(s => {
+  screens.forEach(function(s) {
     const el = document.getElementById('screen-' + s);
-    if (el) el.style.display = s === name ? (s === 'dashboard' ? 'block' : 'flex') : 'none';
+    if (el) {
+      if (s === name) {
+        el.style.display = (s === 'dashboard') ? 'block' : 'flex';
+      } else {
+        el.style.display = 'none';
+      }
+    }
   });
 }
-// ─────────────────────────────────────────────
-// STRAVA OAUTH (via Netlify Function)
-// ─────────────────────────────────────────────
+
 const STRAVA_CLIENT_ID = '244519';
 const REDIRECT_URI = 'https://tiny-crepe-fb6027.netlify.app';
 
-async function startStravaAuth() {
+function startStravaAuth() {
   const params = new URLSearchParams({
     client_id: STRAVA_CLIENT_ID,
     redirect_uri: REDIRECT_URI,
@@ -213,7 +215,7 @@ async function handleOAuthCallback(code) {
     const res = await fetch('/.netlify/functions/strava-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, grant_type: 'authorization_code' })
+      body: JSON.stringify({ code: code, grant_type: 'authorization_code' })
     });
     const data = await res.json();
     if (data.access_token) {
@@ -261,7 +263,6 @@ async function getValidToken() {
       console.log("トークンの更新に成功しました");
       return data.access_token;
     }
-    console.log("トークンの更新に失敗しました。認証情報をクリアします。");
     localStorage.removeItem('strava_token');
     localStorage.removeItem('strava_refresh_token');
     localStorage.removeItem('strava_token_expiry');
@@ -272,84 +273,4 @@ async function getValidToken() {
 }
 
 async function loadStravaData(token) {
-  showScreen('oauth');
-  console.log("Stravaデータ取得処理を開始...");
-  const validToken = token || await getValidToken();
-  
-  console.log("🚨【デバッグ】トークンの文字データ型は:", typeof validToken);
-  console.log("🚨【デバッグ】トークンの文字数は:", validToken ? validToken.length : 0);
-  console.log("🚨【デバッグ】トークンの生の文字列中身 ➔", validToken);
-
-  if (!validToken || validToken === "undefined" || validToken.includes("object")) { 
-    console.log("❌ 不正なトークンを検出したため処理を中断します");
-    showScreen('connect'); 
-    return; 
-  }
-  
-  const days = 120;
-  const after = Math.floor((Date.now() / 1000) - days * 86400);
-  let activities = [];
-  let page = 1;
-  try {
-    while (page <= 20) {
-      console.log(`APIリクエスト中... ページ: ${page}`);
-      const res = await fetch(`https://www.strava.com/api/v3/athlete/activities?after=${after}&per_page=100&page=${page}`, {
-        headers: { 'Authorization': 'Bearer ' + validToken }
-      });
-      if (!res.ok) {
-        console.log(`APIエラー応答: ステータス ${res.status}`);
-        if (res.status === 401 || res.status === 403) {
-          localStorage.removeItem('strava_token');
-          localStorage.removeItem('strava_refresh_token');
-          localStorage.removeItem('strava_token_expiry');
-          showScreen('connect');
-          return;
-        }
-        break;
-      }
-      const batch = await res.json();
-      console.log(`データ受信: ${batch.length}件`);
-      if (!Array.isArray(batch) || batch.length === 0) break;
-      activities = activities.concat(batch);
-      page++;
-    }
-  } catch(e) {
-    console.error('Strava fetch error:', e);
-  }
-  console.log(`全データ取得完了。合計件数: ${activities.length}件。描画を開始します。`);
-  const normalized = activities.map(a => ({
-    type: stravaTypeToJa(a.type),
-    date: a.start_date_local.slice(0, 10),
-    dist: a.distance / 1000,
-    time: a.moving_time / 60,
-    avgHR: a.average_heartrate || null,
-    maxHR: a.max_heartrate || null,
-    np: a.weighted_average_watts || null,
-    avgPow: a.average_watts || null,
-    tss: 0,
-    p20: null,
-    name: a.name
-  }));
-  const athlete = JSON.parse(localStorage.getItem('strava_athlete') || '{}');
-  renderDashboard(normalized, 'Strava: ' + (athlete.firstname || '') + ' ' + (athlete.lastname || '').trim());
-}
-
-function stravaTypeToJa(t) {
-  const map = { Run:'ラン', VirtualRun:'ラン', TrailRun:'ラン', Treadmill:'トレッドミル', Ride:'ロードサイクリング', VirtualRide:'仮想サイクリング', Swim:'プールスイム', Walk:'ウォーク', Workout:'筋力トレーニング', WeightTraining:'筋力トレーニング' };
-  return map[t] || t;
-}
-
-// ─────────────────────────────────────────────
-// GARMIN CSV
-// ─────────────────────────────────────────────
-function handleFileUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const text = e.target.result;
-    const activities = parseGarminCSV(text);
-    if (activities.length === 0) { alert('アクティビティが見つかりませんでした'); return; }
-    renderDashboard(activities, 'Garmin CSV: ' + file.name);
-  };
-  reader.readAsText(file, 'UTF
+  showScreen
