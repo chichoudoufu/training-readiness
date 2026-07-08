@@ -354,32 +354,54 @@ function handleFileUpload(event) {
 
 function parseGarminCSV(text) {
   const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
   const header = lines[0].split(',').map(h => h.replace(/"/g,'').trim());
-  const idx = h => header.indexOf(h);
+
+  // Try to find columns by multiple possible names (Japanese or English)
+  function findCol(candidates) {
+    for (const c of candidates) {
+      const i = header.findIndex(h => h.includes(c));
+      if (i >= 0) return i;
+    }
+    return -1;
+  }
+
+  const COL = {
+    type: findCol(['Activity Type', '\u30a2\u30af\u30c6\u30a3\u30d3\u30c6\u30a3\u30bf\u30a4\u30d7']),
+    date: findCol(['Date', '\u65e5\u4ed8']),
+    title: findCol(['Title', '\u30bf\u30a4\u30c8\u30eb']),
+    dist: findCol(['Distance', '\u8ddd\u96e2']),
+    time: findCol(['Time', '\u30bf\u30a4\u30e0']),
+    avgHR: findCol(['Avg HR', '\u5e73\u5747\u5fc3\u62cd\u6570']),
+    maxHR: findCol(['Max HR', '\u6700\u5927\u5fc3\u62cd\u6570']),
+    np: findCol(['Normalized Power', 'NP']),
+    tss: findCol(['Training Stress Score', 'TSS']),
+    p20: findCol(['20', '\u6700\u5927\u5e73\u5747\u30d1\u30ef\u30fc']),
+  };
+
+  console.log('CSV columns found:', COL);
+
   const activities = [];
   for (let i = 1; i < lines.length; i++) {
     const cols = smartSplit(lines[i]);
-    const get = h => (cols[idx(h)] || '').replace(/"/g,'').trim();
-    const timeStr = get('');
-    const timeMin = parseTime(timeStr);
-    const dist = parseFloat(get('')) || 0;
-    const tssRaw = parseFloat(get('Training Stress Score')) || 0;
-    const np = parseFloat(get('Normalized Power (NP)')) || null;
-    const p20 = parseFloat(get('20 ')) || null;
+    const get = idx => idx >= 0 ? (cols[idx] || '').replace(/"/g,'').trim() : '';
+    const timeMin = parseTime(get(COL.time));
+    const dist = parseFloat(get(COL.dist)) || 0;
+    if (!get(COL.date) || timeMin <= 0) continue;
     activities.push({
-      type: get(''),
-      date: (get('') || '').slice(0, 10),
+      type: get(COL.type),
+      date: get(COL.date).slice(0, 10),
       dist: dist,
       time: timeMin,
-      avgHR: parseInt(get('')) || null,
-      maxHR: parseInt(get('')) || null,
-      np: np || (parseFloat(get('')) || null),
-      tss: tssRaw,
-      p20: p20,
-      name: get('')
+      avgHR: parseInt(get(COL.avgHR)) || null,
+      maxHR: parseInt(get(COL.maxHR)) || null,
+      np: parseFloat(get(COL.np)) || null,
+      tss: parseFloat(get(COL.tss)) || 0,
+      p20: parseFloat(get(COL.p20)) || null,
+      name: get(COL.title)
     });
   }
-  return activities.filter(a => a.date && a.time > 0);
+  return activities;
 }
 
 function smartSplit(line) {
