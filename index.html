@@ -432,15 +432,15 @@ function estimateTSS(a) {
   if (a.tss > 0) return a.tss;
   const h = a.time / 60;
   if (h <= 0) return 0;
-  if (a.np && (a.type.includes('') || a.type.includes(''))) {
+  if (a.np && (a.type.includes('\u30e9\u30f3') || a.type.includes('\u30c8\u30ec\u30c3\u30c9\u30df\u30eb'))) {
     const IF = a.np / rFTP; return Math.round(IF*IF*h*100);
   }
-  if (a.type.includes('') || a.type.includes('')) {
+  if (a.type.includes('\u30d0\u30a4\u30af') || a.type.includes('\u30b5\u30a4\u30af\u30ea\u30f3\u30b0')) {
     if (a.np) { const IF = a.np/FTP_BIKE; return Math.round(IF*IF*h*100); }
     if (a.avgHR) { const IF = a.avgHR/LTHR; return Math.round(IF*IF*h*100*0.67); }
   }
-  if (a.type.includes('')) return Math.round(h*60*2.5);
-  if (a.type.includes('')) {
+  if (a.type.includes('\u30b9\u30a4\u30e0')) return Math.round(h*60*2.5);
+  if (a.type.includes('\u30a6\u30a9\u30fc\u30af')) {
     if (!a.avgHR) return 0;
     const IF = a.avgHR/LTHR; return Math.round(IF*IF*h*100*0.4);
   }
@@ -451,7 +451,7 @@ function estimateTSS(a) {
 function estimateVO2(a) {
   if (!a.np || !a.time || a.dist <= 0) return null;
   const s = (a.dist*1000)/(a.time*60);
-  if (s < 1.5 || a.type.includes('') || a.type.includes('')) return null;
+  if (s < 1.5 || a.type.includes('\u30d0\u30a4\u30af') || a.type.includes('\u30a6\u30a9\u30fc\u30af') || a.type.includes('\u30b5\u30a4\u30af\u30ea\u30f3\u30b0')) return null;
   return +Math.min(Math.max((a.np/3.5)*0.85+s*3.5, 40), 65).toFixed(1);
 }
 
@@ -475,8 +475,8 @@ function buildTimeSeries(activities, startDate, endDate) {
   activities.forEach(a => {
     if (!dayMap[a.date]) dayMap[a.date] = {run:0,bike:0,other:0,vo2:null,ftp:null};
     const t = estimateTSS(a);
-    if (a.type.includes('')||a.type.includes('')) dayMap[a.date].run += t;
-    else if (a.type.includes('')||a.type.includes('')) dayMap[a.date].bike += t;
+    if (a.type.includes('\u30e9\u30f3')||a.type.includes('\u30c8\u30ec\u30c3\u30c9\u30df\u30eb')) dayMap[a.date].run += t;
+    else if (a.type.includes('\u30d0\u30a4\u30af')||a.type.includes('\u30b5\u30a4\u30af\u30ea\u30f3\u30b0')) dayMap[a.date].bike += t;
     else dayMap[a.date].other += t;
     const v = estimateVO2(a);
     if (v && (!dayMap[a.date].vo2 || v > dayMap[a.date].vo2)) dayMap[a.date].vo2 = v;
