@@ -182,9 +182,9 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
 </div>
 
 <script>
-// ---------------------------------------------
+// ─────────────────────────────────────────────
 // SCREEN ROUTING
-// ---------------------------------------------
+// ─────────────────────────────────────────────
 const screens = ['connect','oauth','dashboard'];
 function showScreen(name) {
   screens.forEach(s => {
@@ -192,34 +192,30 @@ function showScreen(name) {
     if (el) el.style.display = s === name ? (s === 'dashboard' ? 'block' : 'flex') : 'none';
   });
 }
-// ---------------------------------------------
+// ─────────────────────────────────────────────
 // STRAVA OAUTH (via Netlify Function)
-// ---------------------------------------------
+// ─────────────────────────────────────────────
 const STRAVA_CLIENT_ID = '244519';
-const REDIRECT_URI = 'https://chichoudoufu.github.io/training-readiness/';
+const REDIRECT_URI = 'https://tiny-crepe-fb6027.netlify.app';
 
 async function startStravaAuth() {
-  const authUrl = 'https://www.strava.com/oauth/authorize'
-    + '?client_id=' + STRAVA_CLIENT_ID
-    + '&redirect_uri=' + encodeURIComponent(REDIRECT_URI)
-    + '&response_type=code'
-    + '&scope=read,activity:read,activity:read_all'
-    + '&approval_prompt=force';
-  window.location.href = authUrl;
+  const params = new URLSearchParams({
+    client_id: STRAVA_CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    response_type: 'code',
+    scope: 'read,activity:read_all',
+    approval_prompt: 'force'
+  });
+  window.location.href = 'https://www.strava.com/oauth/authorize?' + params.toString();
 }
 
 async function handleOAuthCallback(code) {
   showScreen('oauth');
   try {
-    const res = await fetch('https://www.strava.com/oauth/token', {
+    const res = await fetch('/.netlify/functions/strava-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: STRAVA_CLIENT_ID,
-        client_secret: '86ebb4132af56cf615d69f62d861c03c090eb530',
-        code: code,
-        grant_type: 'authorization_code'
-      })
+      body: JSON.stringify({ code, grant_type: 'authorization_code' })
     });
     const data = await res.json();
     if (data.access_token) {
@@ -227,17 +223,14 @@ async function handleOAuthCallback(code) {
       localStorage.setItem('strava_refresh_token', data.refresh_token || '');
       localStorage.setItem('strava_token_expiry', data.expires_at || 0);
       localStorage.setItem('strava_athlete', JSON.stringify(data.athlete));
-      localStorage.setItem('strava_scope', data.scope || '');
-      console.log('Token scope:', data.scope);
-      console.log('Token expires:', new Date((data.expires_at||0)*1000));
       window.history.replaceState({}, '', window.location.pathname);
       await loadStravaData(data.access_token);
     } else {
-      alert(': ' + (data.message || JSON.stringify(data)));
+      alert('認証失敗: ' + (data.message || JSON.stringify(data)));
       showScreen('connect');
     }
   } catch(e) {
-    alert(': ' + e.message);
+    alert('接続エラー: ' + e.message);
     showScreen('connect');
   }
 }
@@ -249,15 +242,10 @@ async function getValidToken() {
   if (Date.now() / 1000 < expiry - 300) return token;
   if (!refresh) return null;
   try {
-    const res = await fetch('https://www.strava.com/oauth/token', {
+    const res = await fetch('/.netlify/functions/strava-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: STRAVA_CLIENT_ID,
-        client_secret: '86ebb4132af56cf615d69f62d861c03c090eb530',
-        grant_type: 'refresh_token',
-        refresh_token: refresh
-      })
+      body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: refresh })
     });
     const data = await res.json();
     if (data.access_token) {
@@ -266,6 +254,7 @@ async function getValidToken() {
       localStorage.setItem('strava_refresh_token', data.refresh_token || refresh);
       return data.access_token;
     }
+    // リフレッシュ失敗時はトークンをクリア
     localStorage.removeItem('strava_token');
     localStorage.removeItem('strava_refresh_token');
     localStorage.removeItem('strava_token_expiry');
@@ -287,18 +276,12 @@ async function loadStravaData(token) {
         headers: { 'Authorization': 'Bearer ' + validToken }
       });
       if (!res.ok) {
-        const errBody = await res.text();
-        if (res.status === 401) {
+        if (res.status === 401 || res.status === 403) {
           localStorage.removeItem('strava_token');
           localStorage.removeItem('strava_refresh_token');
           localStorage.removeItem('strava_token_expiry');
           showScreen('connect');
           return;
-        }
-        if (res.status === 403) {
-          // 403: ?????????????????????????
-          console.error('Strava 403:', errBody);
-          break;
         }
         break;
       }
@@ -325,20 +308,17 @@ async function loadStravaData(token) {
     name: a.name
   }));
   const athlete = JSON.parse(localStorage.getItem('strava_athlete') || '{}');
-  const scope = localStorage.getItem('strava_scope') || '';
-  const label = 'Strava: ' + (athlete.firstname || '') + ' ' + (athlete.lastname || '').trim();
-  console.log('Strava scope granted:', scope);
-  renderDashboard(normalized, label);
+  renderDashboard(normalized, 'Strava: ' + (athlete.firstname || '') + ' ' + (athlete.lastname || '').trim());
 }
 
 function stravaTypeToJa(t) {
-  const map = { Run:'', VirtualRun:'', TrailRun:'', Treadmill:'', Ride:'', VirtualRide:'', Swim:'', Walk:'', Workout:'', WeightTraining:'' };
+  const map = { Run:'ラン', VirtualRun:'ラン', TrailRun:'ラン', Treadmill:'トレッドミル', Ride:'ロードサイクリング', VirtualRide:'仮想サイクリング', Swim:'プールスイム', Walk:'ウォーク', Workout:'筋力トレーニング', WeightTraining:'筋力トレーニング' };
   return map[t] || t;
 }
 
-// ---------------------------------------------
+// ─────────────────────────────────────────────
 // GARMIN CSV
-// ---------------------------------------------
+// ─────────────────────────────────────────────
 function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -346,7 +326,7 @@ function handleFileUpload(event) {
   reader.onload = e => {
     const text = e.target.result;
     const activities = parseGarminCSV(text);
-    if (activities.length === 0) { alert(''); return; }
+    if (activities.length === 0) { alert('アクティビティが見つかりませんでした'); return; }
     renderDashboard(activities, 'Garmin CSV: ' + file.name);
   };
   reader.readAsText(file, 'UTF-8');
@@ -354,54 +334,32 @@ function handleFileUpload(event) {
 
 function parseGarminCSV(text) {
   const lines = text.trim().split('\n');
-  if (lines.length < 2) return [];
   const header = lines[0].split(',').map(h => h.replace(/"/g,'').trim());
-
-  // Try to find columns by multiple possible names (Japanese or English)
-  function findCol(candidates) {
-    for (const c of candidates) {
-      const i = header.findIndex(h => h.includes(c));
-      if (i >= 0) return i;
-    }
-    return -1;
-  }
-
-  const COL = {
-    type: findCol(['Activity Type', '\u30a2\u30af\u30c6\u30a3\u30d3\u30c6\u30a3\u30bf\u30a4\u30d7']),
-    date: findCol(['Date', '\u65e5\u4ed8']),
-    title: findCol(['Title', '\u30bf\u30a4\u30c8\u30eb']),
-    dist: findCol(['Distance', '\u8ddd\u96e2']),
-    time: findCol(['Time', '\u30bf\u30a4\u30e0']),
-    avgHR: findCol(['Avg HR', '\u5e73\u5747\u5fc3\u62cd\u6570']),
-    maxHR: findCol(['Max HR', '\u6700\u5927\u5fc3\u62cd\u6570']),
-    np: findCol(['Normalized Power', 'NP']),
-    tss: findCol(['Training Stress Score', 'TSS']),
-    p20: findCol(['20', '\u6700\u5927\u5e73\u5747\u30d1\u30ef\u30fc']),
-  };
-
-  console.log('CSV columns found:', COL);
-
+  const idx = h => header.indexOf(h);
   const activities = [];
   for (let i = 1; i < lines.length; i++) {
     const cols = smartSplit(lines[i]);
-    const get = idx => idx >= 0 ? (cols[idx] || '').replace(/"/g,'').trim() : '';
-    const timeMin = parseTime(get(COL.time));
-    const dist = parseFloat(get(COL.dist)) || 0;
-    if (!get(COL.date) || timeMin <= 0) continue;
+    const get = h => (cols[idx(h)] || '').replace(/"/g,'').trim();
+    const timeStr = get('タイム');
+    const timeMin = parseTime(timeStr);
+    const dist = parseFloat(get('距離')) || 0;
+    const tssRaw = parseFloat(get('Training Stress Score®')) || 0;
+    const np = parseFloat(get('Normalized Power® (NP®)')) || null;
+    const p20 = parseFloat(get('最大平均パワー（20 分）')) || null;
     activities.push({
-      type: get(COL.type),
-      date: get(COL.date).slice(0, 10),
+      type: get('アクティビティタイプ'),
+      date: (get('日付') || '').slice(0, 10),
       dist: dist,
       time: timeMin,
-      avgHR: parseInt(get(COL.avgHR)) || null,
-      maxHR: parseInt(get(COL.maxHR)) || null,
-      np: parseFloat(get(COL.np)) || null,
-      tss: parseFloat(get(COL.tss)) || 0,
-      p20: parseFloat(get(COL.p20)) || null,
-      name: get(COL.title)
+      avgHR: parseInt(get('平均心拍数')) || null,
+      maxHR: parseInt(get('最大心拍数')) || null,
+      np: np || (parseFloat(get('平均パワー')) || null),
+      tss: tssRaw,
+      p20: p20,
+      name: get('タイトル')
     });
   }
-  return activities;
+  return activities.filter(a => a.date && a.time > 0);
 }
 
 function smartSplit(line) {
@@ -423,24 +381,24 @@ function parseTime(s) {
   return 0;
 }
 
-// ---------------------------------------------
+// ─────────────────────────────────────────────
 // ANALYTICS ENGINE
-// ---------------------------------------------
+// ─────────────────────────────────────────────
 const LTHR = 167, rFTP = 280, FTP_BIKE = 162;
 
 function estimateTSS(a) {
   if (a.tss > 0) return a.tss;
   const h = a.time / 60;
   if (h <= 0) return 0;
-  if (a.np && (a.type.includes('\u30e9\u30f3') || a.type.includes('\u30c8\u30ec\u30c3\u30c9\u30df\u30eb'))) {
+  if (a.np && (a.type.includes('ラン') || a.type.includes('トレッドミル'))) {
     const IF = a.np / rFTP; return Math.round(IF*IF*h*100);
   }
-  if (a.type.includes('\u30d0\u30a4\u30af') || a.type.includes('\u30b5\u30a4\u30af\u30ea\u30f3\u30b0')) {
+  if (a.type.includes('バイク') || a.type.includes('サイクリング')) {
     if (a.np) { const IF = a.np/FTP_BIKE; return Math.round(IF*IF*h*100); }
     if (a.avgHR) { const IF = a.avgHR/LTHR; return Math.round(IF*IF*h*100*0.67); }
   }
-  if (a.type.includes('\u30b9\u30a4\u30e0')) return Math.round(h*60*2.5);
-  if (a.type.includes('\u30a6\u30a9\u30fc\u30af')) {
+  if (a.type.includes('スイム')) return Math.round(h*60*2.5);
+  if (a.type.includes('ウォーク')) {
     if (!a.avgHR) return 0;
     const IF = a.avgHR/LTHR; return Math.round(IF*IF*h*100*0.4);
   }
@@ -451,18 +409,18 @@ function estimateTSS(a) {
 function estimateVO2(a) {
   if (!a.np || !a.time || a.dist <= 0) return null;
   const s = (a.dist*1000)/(a.time*60);
-  if (s < 1.5 || a.type.includes('\u30d0\u30a4\u30af') || a.type.includes('\u30a6\u30a9\u30fc\u30af') || a.type.includes('\u30b5\u30a4\u30af\u30ea\u30f3\u30b0')) return null;
+  if (s < 1.5 || a.type.includes('バイク') || a.type.includes('ウォーク')) return null;
   return +Math.min(Math.max((a.np/3.5)*0.85+s*3.5, 40), 65).toFixed(1);
 }
 
 function buildTimeSeries(activities, startDate, endDate) {
-  // ?????????????
+  // 今日まで含むよう期間を拡張
   const today = new Date();
-  today.setHours(12,0,0,0); // 
+  today.setHours(12,0,0,0); // 正午に固定してタイムゾーン問題を回避
   const todayStr = today.toISOString().slice(0,10);
   const allStart = (startDate < endDate ? startDate : endDate) || todayStr;
 
-  // ?????????????
+  // 全日付リスト（最古〜今日）
   const allDates = [];
   const da = new Date(allStart + 'T12:00:00');
   const de = new Date(todayStr + 'T12:00:00');
@@ -475,23 +433,23 @@ function buildTimeSeries(activities, startDate, endDate) {
   activities.forEach(a => {
     if (!dayMap[a.date]) dayMap[a.date] = {run:0,bike:0,other:0,vo2:null,ftp:null};
     const t = estimateTSS(a);
-    if (a.type.includes('\u30e9\u30f3')||a.type.includes('\u30c8\u30ec\u30c3\u30c9\u30df\u30eb')) dayMap[a.date].run += t;
-    else if (a.type.includes('\u30d0\u30a4\u30af')||a.type.includes('\u30b5\u30a4\u30af\u30ea\u30f3\u30b0')) dayMap[a.date].bike += t;
+    if (a.type.includes('ラン')||a.type.includes('トレッドミル')) dayMap[a.date].run += t;
+    else if (a.type.includes('バイク')||a.type.includes('サイクリング')) dayMap[a.date].bike += t;
     else dayMap[a.date].other += t;
     const v = estimateVO2(a);
     if (v && (!dayMap[a.date].vo2 || v > dayMap[a.date].vo2)) dayMap[a.date].vo2 = v;
     if (a.p20) {
       const f = +(a.p20*0.95).toFixed(0);
       if (!dayMap[a.date].ftp || f > dayMap[a.date].ftp) dayMap[a.date].ftp = f;
-    } else if (a.np && (a.type.includes('')||a.type.includes(''))) {
+    } else if (a.np && (a.type.includes('バイク')||a.type.includes('サイクリング'))) {
       const f = +(a.np*0.88).toFixed(0);
       if (!dayMap[a.date].ftp || f > dayMap[a.date].ftp) dayMap[a.date].ftp = f;
     }
   });
 
-  // ????CTL/ATL??????????0??????????
+  // 全期間でCTL/ATLを積み上げ（初期値は0から自然収束させる）
   const ctl=[], atl=[], tsb=[], run=[], bike=[], other=[], vo2=[], ftp=[];
-  const dates = allDates; // 
+  const dates = allDates; // 表示用は全期間
   let ctlV=0, atlV=0;
   dates.forEach(d => {
     const dt = dayMap[d] || {run:0,bike:0,other:0,vo2:null,ftp:null};
@@ -514,9 +472,9 @@ function buildTimeSeries(activities, startDate, endDate) {
   return { dates, labels: dates.map(d=>d.slice(5)), ctl, atl, tsb, run, bike, other, vo2, vo2MA, ftp };
 }
 
-// ---------------------------------------------
+// ─────────────────────────────────────────────
 // RENDER
-// ---------------------------------------------
+// ─────────────────────────────────────────────
 let charts = {};
 function destroyCharts() {
   Object.values(charts).forEach(c => { try { c.destroy(); } catch(e){} });
@@ -542,13 +500,13 @@ function renderDashboard(activities, sourceLabel) {
 
   // KPI cards
   const tsbColor = curTSB > 5 ? 'good' : curTSB > -10 ? '' : 'bad';
-  const tsbLabel = curTSB > 5 ? 'OK' : curTSB > -10 ? '' : '';
+  const tsbLabel = curTSB > 5 ? 'レース準備OK' : curTSB > -10 ? '通常トレーニング' : '疲労蓄積中';
   document.getElementById('kpi-grid').innerHTML = `
-    <div class="kpi"><div class="kpi-label">CTL </div><div class="kpi-value">${curCTL.toFixed(0)}</div><div class="kpi-sub">42TSS</div></div>
-    <div class="kpi"><div class="kpi-label">ATL </div><div class="kpi-value warn">${curATL.toFixed(0)}</div><div class="kpi-sub">7TSS</div></div>
-    <div class="kpi"><div class="kpi-label">TSB </div><div class="kpi-value ${tsbColor}">${curTSB>0?'+':''}${curTSB.toFixed(0)}</div><div class="kpi-sub">${tsbLabel}</div></div>
-    <div class="kpi"><div class="kpi-label">FTP </div><div class="kpi-value">${curFTP ? curFTP+'W' : '--'}</div><div class="kpi-sub">20NP  0.95</div></div>
-    <div class="kpi"><div class="kpi-label">VO2max </div><div class="kpi-value">${curVO2 ? curVO2 : '--'}</div><div class="kpi-sub">${curVO2 ? 'mL/kg/min' : ''}</div></div>
+    <div class="kpi"><div class="kpi-label">CTL フィットネス</div><div class="kpi-value">${curCTL.toFixed(0)}</div><div class="kpi-sub">42日平均TSS</div></div>
+    <div class="kpi"><div class="kpi-label">ATL 疲労</div><div class="kpi-value warn">${curATL.toFixed(0)}</div><div class="kpi-sub">7日平均TSS</div></div>
+    <div class="kpi"><div class="kpi-label">TSB フォーム</div><div class="kpi-value ${tsbColor}">${curTSB>0?'+':''}${curTSB.toFixed(0)}</div><div class="kpi-sub">${tsbLabel}</div></div>
+    <div class="kpi"><div class="kpi-label">FTP 推定</div><div class="kpi-value">${curFTP ? curFTP+'W' : '--'}</div><div class="kpi-sub">20分NP × 0.95</div></div>
+    <div class="kpi"><div class="kpi-label">VO2max 推定</div><div class="kpi-value">${curVO2 ? curVO2 : '--'}</div><div class="kpi-sub">${curVO2 ? 'mL/kg/min' : '計測データ不足'}</div></div>
   `;
 
   // Advice
@@ -558,35 +516,35 @@ function renderDashboard(activities, sourceLabel) {
   buildChartUI(ts);
 }
 
-// ---------------------------------------------
+// ─────────────────────────────────────────────
 // ADVICE via Claude API
-// ---------------------------------------------
+// ─────────────────────────────────────────────
 async function generateAdvice({ curCTL, curATL, curTSB, curVO2, curFTP, activities }) {
   const el = document.getElementById('advice-content');
-  el.innerHTML = '<div class="advice-loading"><div class="spinner" style="width:16px;height:16px;border-width:2px"></div>AI...</div>';
+  el.innerHTML = '<div class="advice-loading"><div class="spinner" style="width:16px;height:16px;border-width:2px"></div>AIが分析中...</div>';
 
   const recentActs = activities.slice(-14).map(a =>
-    `${a.date} ${a.type} ${a.dist.toFixed(1)}km ${a.time.toFixed(0)} HR:${a.avgHR||'--'}`
+    `${a.date} ${a.type} ${a.dist.toFixed(1)}km ${a.time.toFixed(0)}分 HR:${a.avgHR||'--'}`
   ).join('\n');
 
-  const prompt = `
+  const prompt = `あなたはトライアスロン・ランニングコーチです。以下のトレーニングデータを分析して、日本語で簡潔にアドバイスしてください。
 
-:
-- CTL: ${curCTL.toFixed(1)}
-- ATL: ${curATL.toFixed(1)}  
-- TSB: ${curTSB.toFixed(1)}
-- FTP: ${curFTP ? curFTP+'W' : ''}
-- VO2max: ${curVO2 ? curVO2+' mL/kg/min' : ''}
+現在のステータス:
+- CTL（フィットネス）: ${curCTL.toFixed(1)}
+- ATL（疲労）: ${curATL.toFixed(1)}  
+- TSB（フォーム）: ${curTSB.toFixed(1)}
+- FTP推定: ${curFTP ? curFTP+'W' : '不明'}
+- VO2max推定: ${curVO2 ? curVO2+' mL/kg/min' : '不明'}
 
-2:
+直近2週間のアクティビティ:
 ${recentActs}
 
-323:
-1. ****: TSBCTLATL
-2. ****: 
-3. **23**: 
+以下の3点について、それぞれ2〜3文で具体的にアドバイスしてください:
+1. **現在のコンディション評価**: TSB・CTL・ATLから見た状態
+2. **今週の推奨トレーニング**: 強度・量・種目のバランス
+3. **今後2〜3週間の方針**: ピーキング・ベース構築・回復など
 
-HTML****`;
+HTMLタグは使わず、マークダウン（**太字**）のみ使用してください。`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -599,16 +557,16 @@ HTML****`;
       })
     });
     const data = await res.json();
-    const text = data.content?.[0]?.text || '';
+    const text = data.content?.[0]?.text || 'アドバイスを取得できませんでした';
     el.innerHTML = '<div class="advice-text">' + markdownToHtml(text) + '</div>';
   } catch(e) {
     el.innerHTML = `<div class="advice-text">
-      <strong></strong><br>
-      CTL ${curCTL.toFixed(0)} / ATL ${curATL.toFixed(0)} / TSB ${curTSB>0?'+':''}${curTSB.toFixed(0)}
-      ${curTSB < -10 ? '' : curTSB > 5 ? '' : ''}
+      <strong>現在のコンディション評価</strong><br>
+      CTL ${curCTL.toFixed(0)} / ATL ${curATL.toFixed(0)} / TSB ${curTSB>0?'+':''}${curTSB.toFixed(0)}。
+      ${curTSB < -10 ? '疲労が蓄積しています。回復を優先しましょう。' : curTSB > 5 ? 'フォームが良好です。レースや強度練習に適しています。' : '通常のトレーニング継続が可能です。'}
       <br><br>
-      <strong></strong><br>
-      ${curATL > curCTL * 1.3 ? 'ATLCTL' : '1'}
+      <strong>今週の推奨</strong><br>
+      ${curATL > curCTL * 1.3 ? 'ATLがCTLを大きく上回っています。軽めのリカバリーランと休息を優先してください。' : 'ベーストレーニングを継続しながら週1回の質的練習を入れましょう。'}
     </div>`;
   }
 }
@@ -621,15 +579,15 @@ function markdownToHtml(text) {
     .replace(/^\d+\.\s/gm, '');
 }
 
-// ---------------------------------------------
+// ─────────────────────────────────────────────
 // CHARTS
-// ---------------------------------------------
+// ─────────────────────────────────────────────
 const CHART_TABS = [
   { id: 'pmc', label: 'PMC' },
-  { id: 'tss', label: 'TSS' },
-  { id: 'vo2', label: 'VO2max' },
-  { id: 'ftp', label: 'FTP' },
-  { id: 'hr',  label: '' },
+  { id: 'tss', label: 'デイリーTSS' },
+  { id: 'vo2', label: 'VO2max推定' },
+  { id: 'ftp', label: 'FTP推定' },
+  { id: 'hr',  label: '心拍' },
 ];
 let currentTab = 'pmc';
 let currentTS = null;
@@ -663,19 +621,19 @@ function renderChart(id) {
     const tssMax = Math.ceil(Math.max(...tssTot)/50)*50+50;
     area.innerHTML = `
       <div class="legend">
-        <span><span class="legend-line" style="background:#5b8df6"></span>CTL</span>
-        <span><span class="legend-line" style="background:#f06060"></span>ATL</span>
-        <span><span class="legend-line" style="background:#3ecf8e;border-top:2px dashed #3ecf8e;height:0"></span>TSB</span>
+        <span><span class="legend-line" style="background:#5b8df6"></span>CTL（フィットネス）</span>
+        <span><span class="legend-line" style="background:#f06060"></span>ATL（疲労）</span>
+        <span><span class="legend-line" style="background:#3ecf8e;border-top:2px dashed #3ecf8e;height:0"></span>TSB（フォーム）</span>
       </div>
-      <div class="chart-wrap" style="height:220px"><canvas id="c1" role="img" aria-label="PMC"></canvas></div>
+      <div class="chart-wrap" style="height:220px"><canvas id="c1" role="img" aria-label="PMCチャート"></canvas></div>
       <hr style="border:none;border-top:1px solid var(--border);margin:16px 0 12px">
       <div class="legend">
-        <span><span class="legend-dot" style="background:rgba(91,141,246,0.8)"></span></span>
-        <span><span class="legend-dot" style="background:rgba(240,96,96,0.8)"></span></span>
-        <span><span class="legend-dot" style="background:rgba(62,207,142,0.8)"></span>/</span>
+        <span><span class="legend-dot" style="background:rgba(91,141,246,0.8)"></span>ラン</span>
+        <span><span class="legend-dot" style="background:rgba(240,96,96,0.8)"></span>バイク</span>
+        <span><span class="legend-dot" style="background:rgba(62,207,142,0.8)"></span>スイム/その他</span>
       </div>
-      <div class="chart-wrap" style="height:160px"><canvas id="c1b" role="img" aria-label="TSS"></canvas></div>
-      <p class="section-note"> GarminTSS0</p>`;
+      <div class="chart-wrap" style="height:160px"><canvas id="c1b" role="img" aria-label="デイリーTSS棒グラフ"></canvas></div>
+      <p class="section-note">※ GarminのTSSが0のアクティビティは心拍・時間から推計</p>`;
     charts.c1 = new Chart(document.getElementById('c1'), {
       type:'line',
       data:{labels:ts.labels,datasets:[
@@ -695,9 +653,9 @@ function renderChart(id) {
     charts.c1b = new Chart(document.getElementById('c1b'), {
       type:'bar',
       data:{labels:ts.labels,datasets:[
-        {label:'',  data:ts.run,  backgroundColor:'rgba(91,141,246,0.7)',stack:'s',borderRadius:2},
-        {label:'',data:ts.bike, backgroundColor:'rgba(240,96,96,0.7)',stack:'s',borderRadius:2},
-        {label:'',data:ts.other,backgroundColor:'rgba(62,207,142,0.7)',stack:'s',borderRadius:2},
+        {label:'ラン',  data:ts.run,  backgroundColor:'rgba(91,141,246,0.7)',stack:'s',borderRadius:2},
+        {label:'バイク',data:ts.bike, backgroundColor:'rgba(240,96,96,0.7)',stack:'s',borderRadius:2},
+        {label:'その他',data:ts.other,backgroundColor:'rgba(62,207,142,0.7)',stack:'s',borderRadius:2},
       ]},
       options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
         plugins:{legend:{display:false}},
@@ -714,18 +672,18 @@ function renderChart(id) {
     const tssMax = Math.ceil(Math.max(...tssTot)/50)*50+50;
     area.innerHTML = `
       <div class="legend">
-        <span><span class="legend-dot" style="background:#5b8df6"></span></span>
-        <span><span class="legend-dot" style="background:#f06060"></span></span>
-        <span><span class="legend-dot" style="background:#3ecf8e"></span>/</span>
+        <span><span class="legend-dot" style="background:#5b8df6"></span>ラン</span>
+        <span><span class="legend-dot" style="background:#f06060"></span>バイク</span>
+        <span><span class="legend-dot" style="background:#3ecf8e"></span>スイム/その他</span>
       </div>
-      <div class="chart-wrap" style="height:260px"><canvas id="c2" role="img" aria-label="TSS"></canvas></div>
-      <p class="section-note"> GarminTSS0</p>`;
+      <div class="chart-wrap" style="height:260px"><canvas id="c2" role="img" aria-label="デイリーTSS"></canvas></div>
+      <p class="section-note">※ GarminのTSSが0のアクティビティは心拍・時間から推計</p>`;
     charts.c2 = new Chart(document.getElementById('c2'), {
       type:'bar',
       data:{labels:ts.labels,datasets:[
-        {label:'',  data:ts.run,  backgroundColor:'rgba(91,141,246,0.7)',stack:'s',borderRadius:2},
-        {label:'',data:ts.bike, backgroundColor:'rgba(240,96,96,0.7)',stack:'s',borderRadius:2},
-        {label:'',data:ts.other,backgroundColor:'rgba(62,207,142,0.7)',stack:'s',borderRadius:2},
+        {label:'ラン',  data:ts.run,  backgroundColor:'rgba(91,141,246,0.7)',stack:'s',borderRadius:2},
+        {label:'バイク',data:ts.bike, backgroundColor:'rgba(240,96,96,0.7)',stack:'s',borderRadius:2},
+        {label:'その他',data:ts.other,backgroundColor:'rgba(62,207,142,0.7)',stack:'s',borderRadius:2},
       ]},
       options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
         plugins:{legend:{display:false}},
@@ -742,11 +700,11 @@ function renderChart(id) {
     const vo2Max = Math.ceil(Math.max(...ts.vo2MA.filter(x=>x))/5)*5+2;
     area.innerHTML = `
       <div class="legend">
-        <span><span class="legend-dot" style="background:#2ec4b6"></span>VO2max</span>
-        <span><span class="legend-line" style="background:#2ec4b6;opacity:0.5"></span>7</span>
+        <span><span class="legend-dot" style="background:#2ec4b6"></span>VO2max推定</span>
+        <span><span class="legend-line" style="background:#2ec4b6;opacity:0.5"></span>7日移動平均</span>
       </div>
-      <div class="chart-wrap" style="height:260px"><canvas id="c3" role="img" aria-label="VO2max"></canvas></div>
-      <p class="section-note"> NPGarmin</p>`;
+      <div class="chart-wrap" style="height:260px"><canvas id="c3" role="img" aria-label="VO2max推定値"></canvas></div>
+      <p class="section-note">※ ランニングNP・スピードから推計。Garmin実測値があれば実測値が優先されます</p>`;
     charts.c3 = new Chart(document.getElementById('c3'), {
       type:'line',
       data:{labels:ts.labels,datasets:[
@@ -769,9 +727,9 @@ function renderChart(id) {
     const ftpMax = ftpVals.length ? Math.ceil(Math.max(...ftpVals)/20)*20+20 : 220;
     area.innerHTML = `
       <div class="legend">
-        <span><span class="legend-dot" style="background:#f0a940"></span>FTP20NP0.95</span>
+        <span><span class="legend-dot" style="background:#f0a940"></span>FTP推定（20分NP×0.95）</span>
       </div>
-      <div class="chart-wrap" style="height:260px"><canvas id="c4" role="img" aria-label="FTP"></canvas></div>`;
+      <div class="chart-wrap" style="height:260px"><canvas id="c4" role="img" aria-label="FTP推定値"></canvas></div>`;
     charts.c4 = new Chart(document.getElementById('c4'), {
       type:'line',
       data:{labels:ts.labels,datasets:[
@@ -788,16 +746,16 @@ function renderChart(id) {
   }
 
   else if (id === 'hr') {
-    const acts = (currentTS._rawActivities || []).filter(a => a.avgHR && !a.type.includes('')).slice(-20);
-    if (acts.length === 0) { area.innerHTML = '<p style="color:var(--text2);font-size:13px"></p>'; return; }
+    const acts = (currentTS._rawActivities || []).filter(a => a.avgHR && !a.type.includes('ウォーク')).slice(-20);
+    if (acts.length === 0) { area.innerHTML = '<p style="color:var(--text2);font-size:13px">心拍データがありません</p>'; return; }
     const hrLabels = acts.map(a=>a.date.slice(5)+' '+a.type.slice(0,3));
     const hrData = acts.map(a=>a.avgHR);
     const hrColors = acts.map(a => a.avgHR > 140 ? 'rgba(240,96,96,0.8)' : a.avgHR > 125 ? 'rgba(240,169,64,0.8)' : 'rgba(91,141,246,0.8)');
     const hWrap = Math.max(300, acts.length * 28 + 80);
-    area.innerHTML = `<div class="chart-wrap" style="height:${hWrap}px"><canvas id="c5" role="img" aria-label=""></canvas></div>`;
+    area.innerHTML = `<div class="chart-wrap" style="height:${hWrap}px"><canvas id="c5" role="img" aria-label="心拍数チャート"></canvas></div>`;
     charts.c5 = new Chart(document.getElementById('c5'), {
       type:'bar',
-      data:{labels:hrLabels,datasets:[{label:'',data:hrData,backgroundColor:hrColors,borderRadius:3}]},
+      data:{labels:hrLabels,datasets:[{label:'平均心拍数',data:hrData,backgroundColor:hrColors,borderRadius:3}]},
       options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
         plugins:{legend:{display:false}},
         scales:{
@@ -817,9 +775,9 @@ window.renderDashboard = function(activities, sourceLabel) {
   if (currentTS) currentTS._rawActivities = activities;
 };
 
-// ---------------------------------------------
+// ─────────────────────────────────────────────
 // DISCONNECT
-// ---------------------------------------------
+// ─────────────────────────────────────────────
 function disconnect() {
   localStorage.removeItem('strava_token');
   localStorage.removeItem('strava_athlete');
@@ -827,9 +785,9 @@ function disconnect() {
   showScreen('connect');
 }
 
-// ---------------------------------------------
-// INIT -- check OAuth callback or saved token
-// ---------------------------------------------
+// ─────────────────────────────────────────────
+// INIT — check OAuth callback or saved token
+// ─────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
   const code = params.get('code');
