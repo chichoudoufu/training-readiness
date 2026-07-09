@@ -486,7 +486,47 @@ function renderDashboard(activities, sourceLabel) {
   showScreen('dashboard');
   document.getElementById('source-label').textContent = sourceLabel;
 
-  const sorted = [...activities].sort((a,b) => a.date.localeCompare(b.date));
+  // Decompose multisport into swim/bike/run by race type
+  function decomposeMultisport(a) {
+    const h = a.time / 60;
+    var sf, bf, rf, st, bt, rt;
+    if (h >= 8) {
+      // Full Ironman
+      sf=0.107; bf=0.560; rf=0.333;
+      st=60; bt=65; rt=70;
+    } else if (h >= 3.5) {
+      // Half Ironman
+      sf=0.13; bf=0.55; rf=0.32;
+      st=62; bt=72; rt=75;
+    } else if (h >= 1.5) {
+      // Olympic
+      sf=0.17; bf=0.50; rf=0.33;
+      st=65; bt=78; rt=80;
+    } else {
+      // Sprint
+      sf=0.18; bf=0.48; rf=0.34;
+      st=65; bt=82; rt=85;
+    }
+    return [
+      Object.assign({}, a, {type:'プールスイム', time:h*sf*60, dist:0,         tss:Math.round(h*sf*st)}),
+      Object.assign({}, a, {type:'ロードサイクリング', time:h*bf*60, dist:a.dist*bf, tss:Math.round(h*bf*bt), np:null}),
+      Object.assign({}, a, {type:'ラン', time:h*rf*60, dist:a.dist*rf, tss:Math.round(h*rf*rt), np:null}),
+    ];
+  }
+
+  const expanded = [];
+  activities.forEach(function(a) {
+    var isMulti = a.type.includes('マルチスポーツ') ||
+                  a.type.includes('Multisport') ||
+                  a.type.includes('トライアスロン');
+    if (isMulti) {
+      decomposeMultisport(a).forEach(function(x){ expanded.push(x); });
+    } else {
+      expanded.push(a);
+    }
+  });
+
+  const sorted = [...expanded].sort((a,b) => a.date.localeCompare(b.date));
   const startDate = sorted[0]?.date || new Date().toISOString().slice(0,10);
   const endDate = sorted[sorted.length-1]?.date || new Date().toISOString().slice(0,10);
   const ts = buildTimeSeries(sorted, startDate, endDate);
