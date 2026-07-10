@@ -115,6 +115,8 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
 
 .btn-disconnect { background: none; border: 1px solid var(--border2); color: var(--text2); border-radius: var(--r2); padding: 6px 12px; font-family:'Sora',sans-serif; font-size: 12px; cursor: pointer; }
 .btn-disconnect:hover { border-color: var(--red); color: var(--red); }
+.btn-saved { background: var(--bg3); border: 1px solid var(--border2); color: var(--text); border-radius: var(--r2); padding: 13px 20px; font-family:'Sora',sans-serif; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background 0.15s; width: 100%; }
+.btn-saved:hover { background: #232738; }
 
 @media (max-width: 700px) {
   .kpi-grid { grid-template-columns: repeat(2,1fr); }
@@ -145,7 +147,12 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
         <input type="file" accept=".csv" id="file-input" onchange="handleFileUpload(event)">
         📁 GarminのCSVファイルを読み込む
       </label>
+      <div class="divider-or" id="divider-saved" style="display:none">または</div>
+      <button class="btn-saved" id="btn-saved" onclick="loadSavedData()" style="display:none">
+        💾 保存済みデータを表示
+      </button>
     </div>
+    <p id="saved-info" style="font-size:11px;color:var(--text3);margin-top:12px;text-align:center"></p>
   </div>
 </div>
 
@@ -163,6 +170,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
     <h2 id="dash-title">トレーニング分析</h2>
     <div style="display:flex;gap:10px;align-items:center">
       <div class="data-source"><span class="dot"></span><span id="source-label">-</span></div>
+      <button class="btn-disconnect" onclick="saveCurrentData()" style="border-color:var(--green);color:var(--green)">💾 保存</button>
       <button class="btn-disconnect" onclick="disconnect()">切断</button>
     </div>
   </div>
@@ -482,6 +490,8 @@ function destroyCharts() {
 }
 
 function renderDashboard(activities, sourceLabel) {
+  _currentActivities = activities;
+  _currentLabel = sourceLabel;
   destroyCharts();
   showScreen('dashboard');
   document.getElementById('source-label').textContent = sourceLabel;
@@ -866,10 +876,62 @@ function disconnect() {
   showScreen('connect');
 }
 
+// Save/Load snapshot
+let _currentActivities = null;
+let _currentLabel = null;
+
+function saveCurrentData() {
+  if (!_currentActivities || !_currentActivities.length) {
+    alert('No data to save');
+    return;
+  }
+  const snapshot = {
+    activities: _currentActivities,
+    label: _currentLabel,
+    savedAt: new Date().toISOString(),
+    count: _currentActivities.length
+  };
+  try {
+    localStorage.setItem('saved_activities', JSON.stringify(snapshot));
+    alert('保存しました (' + _currentActivities.length + '件 / ' + new Date().toLocaleDateString('ja-JP') + ')');
+  } catch(e) {
+    alert('保存失敗（データが大きすぎる可能性）: ' + e.message);
+  }
+}
+
+function loadSavedData() {
+  const raw = localStorage.getItem('saved_activities');
+  if (!raw) { alert('保存済みデータがありません'); return; }
+  try {
+    const snap = JSON.parse(raw);
+    const savedDate = new Date(snap.savedAt).toLocaleString('ja-JP');
+    window.renderDashboard(snap.activities, snap.label + ' [保存済 ' + savedDate + ']');
+  } catch(e) {
+    alert('読み込み失敗: ' + e.message);
+  }
+}
+
+function checkSavedData() {
+  const raw = localStorage.getItem('saved_activities');
+  const btn = document.getElementById('btn-saved');
+  const info = document.getElementById('saved-info');
+  if (raw && btn && info) {
+    try {
+      const snap = JSON.parse(raw);
+      const d = new Date(snap.savedAt).toLocaleDateString('ja-JP');
+      btn.style.display = 'flex';
+      const div = document.getElementById('divider-saved'); if(div) div.style.display = 'flex';
+      info.style.display = 'block';
+      info.textContent = '保存済み: ' + snap.count + '件 (' + d + ' 保存)';
+    } catch(e) {}
+  }
+}
+
 // ─────────────────────────────────────────────
 // INIT — check OAuth callback or saved token
 // ─────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
+  checkSavedData();
   const params = new URLSearchParams(window.location.search);
   const code = params.get('code');
   const savedToken = localStorage.getItem('strava_token');
