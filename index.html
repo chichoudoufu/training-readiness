@@ -327,15 +327,64 @@ function stravaTypeToJa(t) {
 // ─────────────────────────────────────────────
 // GARMIN CSV
 // ─────────────────────────────────────────────
+function activityKey(a) {
+  return a.date + '|' + a.type + '|' + Math.round(a.time);
+}
+
+function mergeActivities(existing, incoming) {
+  const map = {};
+  existing.forEach(a => { map[activityKey(a)] = a; });
+  let added = 0, updated = 0;
+  incoming.forEach(a => {
+    const k = activityKey(a);
+    if (!map[k]) { map[k] = a; added++; }
+    else if ((a.tss > 0 && !map[k].tss) || (a.avgHR && !map[k].avgHR)) {
+      map[k] = a; updated++;
+    }
+  });
+  const merged = Object.values(map).sort((a,b) => b.date.localeCompare(a.date));
+  return { merged, added, updated };
+}
+
 function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
     const text = e.target.result;
-    const activities = parseGarminCSV(text);
-    if (activities.length === 0) { alert('アクティビティが見つかりませんでした'); return; }
-    renderDashboard(activities, 'Garmin CSV: ' + file.name);
+    const incoming = parseGarminCSV(text);
+    if (incoming.length === 0) {
+      alert('No activities found. Please check CSV format.');
+      return;
+    }
+
+    // Load existing saved activities and merge
+    let existing = [];
+    try {
+      const raw = localStorage.getItem('saved_activities');
+      if (raw) existing = JSON.parse(raw).activities || [];
+    } catch(err) {}
+
+    const { merged, added, updated } = mergeActivities(existing, incoming);
+
+    // Auto-save merged result
+    const snap = {
+      activities: merged,
+      label: 'Garmin CSV',
+      savedAt: new Date().toISOString(),
+      count: merged.length
+    };
+    try {
+      localStorage.setItem('saved_activities', JSON.stringify(snap));
+      checkSavedData();
+    } catch(err) { console.warn('Save failed:', err); }
+
+    const msg = added > 0 || updated > 0
+      ? added + '件追加、' + updated + '件更新 (合計 ' + merged.length + '件)'
+      : '新規データなし (合計 ' + merged.length + '件)';
+    document.getElementById('source-label').textContent = 'Garmin — ' + msg;
+
+    renderDashboard(merged, 'Garmin CSV');
   };
   reader.readAsText(file, 'UTF-8');
 }
@@ -887,15 +936,16 @@ function saveCurrentData() {
   }
   const snapshot = {
     activities: _currentActivities,
-    label: _currentLabel,
+    label: _currentLabel || 'Manual save',
     savedAt: new Date().toISOString(),
     count: _currentActivities.length
   };
   try {
     localStorage.setItem('saved_activities', JSON.stringify(snapshot));
-    alert('保存しました (' + _currentActivities.length + '件 / ' + new Date().toLocaleDateString('ja-JP') + ')');
+    checkSavedData();
+    alert('保存しました (' + _currentActivities.length + '件)');
   } catch(e) {
-    alert('保存失敗（データが大きすぎる可能性）: ' + e.message);
+    alert('保存失敗: ' + e.message);
   }
 }
 
@@ -915,16 +965,24 @@ function checkSavedData() {
   const raw = localStorage.getItem('saved_activities');
   const btn = document.getElementById('btn-saved');
   const info = document.getElementById('saved-info');
-  if (raw && btn && info) {
-    try {
-      const snap = JSON.parse(raw);
-      const d = new Date(snap.savedAt).toLocaleDateString('ja-JP');
-      btn.style.display = 'flex';
-      const div = document.getElementById('divider-saved'); if(div) div.style.display = 'flex';
+  if (!raw) return;
+  try {
+    const snap = JSON.parse(raw);
+    const d = new Date(snap.savedAt).toLocaleDateString('ja-JP');
+    const oldest = snap.activities && snap.activities.length
+      ? snap.activities[snap.activities.length-1].date
+      : '-';
+    const newest = snap.activities && snap.activities.length
+      ? snap.activities[0].date
+      : '-';
+    if (btn) { btn.style.display = 'flex'; }
+    const div = document.getElementById('divider-saved');
+    if (div) div.style.display = 'flex';
+    if (info) {
       info.style.display = 'block';
-      info.textContent = '保存済み: ' + snap.count + '件 (' + d + ' 保存)';
-    } catch(e) {}
-  }
+      info.textContent = snap.count + '件保存済み (' + oldest + ' 〜 ' + newest + ' / ' + d + ' 更新)';
+    }
+  } catch(e) {}
 }
 
 // ─────────────────────────────────────────────
