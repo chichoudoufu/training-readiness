@@ -979,13 +979,21 @@ async function loadIntervalsData() {
 
   const oldest = new Date(Date.now() - days * 86400000).toISOString().slice(0,10);
   const newest = new Date().toISOString().slice(0,10);
-  const url = 'https://intervals.icu/api/v1/athlete/' + athleteId + '/activities?oldest=' + oldest + '&newest=' + newest;
-  const auth = 'Basic ' + btoa('API:' + apiKey);
+  // Trim inputs to remove accidental whitespace
+  const cleanId  = athleteId.trim();
+  const cleanKey = apiKey.trim();
+  const url = 'https://intervals.icu/api/v1/athlete/' + cleanId + '/activities?oldest=' + oldest + '&newest=' + newest;
+  const auth = 'Basic ' + btoa('API:' + cleanKey);
+
+  console.log('ICU URL:', url);
+  console.log('Athlete ID:', cleanId, '/ Key length:', cleanKey.length);
 
   try {
     const res = await fetch(url, { headers: { 'Authorization': auth } });
     if (!res.ok) {
-      alert('取得失敗 (' + res.status + '): APIキーまたはアスリートIDを確認してください');
+      const body = await res.text();
+      console.error('ICU error body:', body);
+      alert('取得失敗 (' + res.status + ')\nURL: ' + url + '\n\n' + body.slice(0,200));
       showScreen('intervals');
       return;
     }
