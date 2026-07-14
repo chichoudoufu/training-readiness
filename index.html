@@ -196,7 +196,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
 <div id="screen-oauth" style="display:none">
   <div class="oauth-box">
     <div class="spinner"></div>
-    <p style="color:var(--text2)">Stravaと接続中...</p>
+    <p id="oauth-msg" style="color:var(--text2)">接続中...</p>
   </div>
 </div>
 
@@ -230,7 +230,9 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
 // SCREEN ROUTING
 // ─────────────────────────────────────────────
 const screens = ['connect','intervals','oauth','dashboard'];
-function showScreen(name) {
+function showScreen(name, msg) {
+  const oauthMsg = document.getElementById('oauth-msg');
+  if (oauthMsg && name === 'oauth') oauthMsg.textContent = msg || '接続中...';
   screens.forEach(s => {
     const el = document.getElementById('screen-' + s);
     if (el) el.style.display = s === name ? (s === 'dashboard' ? 'block' : 'flex') : 'none';
@@ -307,7 +309,7 @@ async function getValidToken() {
 }
 
 async function loadStravaData(token) {
-  showScreen('oauth');
+  showScreen('oauth', 'Stravaからデータ取得中...');
   const validToken = token || await getValidToken();
   if (!validToken) { showScreen('connect'); return; }
   const days = 120;
@@ -973,7 +975,7 @@ async function loadIntervalsData() {
   localStorage.setItem('icu_athlete_id', athleteId);
   localStorage.setItem('icu_api_key', apiKey);
 
-  showScreen('oauth');
+  showScreen('oauth', 'Intervals.icuからデータ取得中...');
 
   const oldest = new Date(Date.now() - days * 86400000).toISOString().slice(0,10);
   const newest = new Date().toISOString().slice(0,10);
