@@ -983,17 +983,35 @@ async function loadIntervalsData() {
   const cleanId  = athleteId.trim();
   const cleanKey = apiKey.trim();
   const url = 'https://intervals.icu/api/v1/athlete/' + cleanId + '/activities?oldest=' + oldest + '&newest=' + newest;
-  const auth = 'Basic ' + btoa('API:' + cleanKey);
+  // Try both auth formats
+  const auth1 = 'Basic ' + btoa('API:' + cleanKey);
+  const auth2 = 'Basic ' + btoa(cleanId + ':' + cleanKey);
 
   console.log('ICU URL:', url);
   console.log('Athlete ID:', cleanId, '/ Key length:', cleanKey.length);
+  console.log('Auth format 1 (API:key):', auth1.slice(0, 20) + '...');
+  console.log('Auth format 2 (id:key):', auth2.slice(0, 20) + '...');
+
+  // Try format 1 first, then format 2
+  async function tryFetch(auth) {
+    return fetch(url, {
+      headers: {
+        'Authorization': auth,
+        'Accept': 'application/json'
+      }
+    });
+  }
 
   try {
-    const res = await fetch(url, { headers: { 'Authorization': auth } });
+    let res = await tryFetch(auth1);
+    if (!res.ok) {
+      console.log('Format 1 failed, trying format 2...');
+      res = await tryFetch(auth2);
+    }
     if (!res.ok) {
       const body = await res.text();
       console.error('ICU error body:', body);
-      alert('取得失敗 (' + res.status + ')\nURL: ' + url + '\n\n' + body.slice(0,200));
+      alert('取得失敗 (' + res.status + ')\nURL: ' + url + '\n\n' + body.slice(0,200) + '\n\nAPIキーとアスリートIDを確認してください');
       showScreen('intervals');
       return;
     }
