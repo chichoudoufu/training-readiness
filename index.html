@@ -969,83 +969,61 @@ async function loadIntervalsData() {
   const athleteId = document.getElementById('icu-athlete-id').value.trim();
   const apiKey    = document.getElementById('icu-api-key').value.trim();
   const days      = parseInt(document.getElementById('icu-days').value) || 120;
-
-  if (!athleteId || !apiKey) { alert('アスリートIDとAPIキーを入力してください'); return; }
-
+  if (!athleteId || !apiKey) { alert('ID and API key required'); return; }
   localStorage.setItem('icu_athlete_id', athleteId);
   localStorage.setItem('icu_api_key', apiKey);
+  showScreen('oauth', 'Intervals.icu\u306b\u63a5\u7d9a\u4e2d...');
 
-  showScreen('oauth', 'Intervals.icuからデータ取得中...');
-
-  const oldest = new Date(Date.now() - days * 86400000).toISOString().slice(0,10);
-  const newest = new Date().toISOString().slice(0,10);
-  // Trim inputs to remove accidental whitespace
-  const cleanId  = athleteId.trim();
-  const cleanKey = apiKey.trim();
-  const url = 'https://intervals.icu/api/v1/athlete/' + cleanId + '/activities?oldest=' + oldest + '&newest=' + newest;
-  // Try both auth formats
-  const auth1 = 'Basic ' + btoa('API:' + cleanKey);
-  const auth2 = 'Basic ' + btoa(cleanId + ':' + cleanKey);
-
-  console.log('ICU URL:', url);
-  console.log('Athlete ID:', cleanId, '/ Key length:', cleanKey.length);
-  console.log('Auth format 1 (API:key):', auth1.slice(0, 20) + '...');
-  console.log('Auth format 2 (id:key):', auth2.slice(0, 20) + '...');
-
-  // Try format 1 first, then format 2
-  async function tryFetch(auth) {
-    return fetch(url, {
-      headers: {
-        'Authorization': auth,
-        'Accept': 'application/json'
-      }
-    });
+  const auths = [
+    'Basic ' + btoa('API:' + apiKey),
+    'Basic ' + btoa(athleteId + ':' + apiKey),
+    'Basic ' + btoa(athleteId.replace(/^i/,'') + ':' + apiKey),
+  ];
+  const profileUrl = 'https://intervals.icu/api/v1/athlete/' + athleteId;
+  let okAuth = null;
+  for (var ai = 0; ai < auths.length; ai++) {
+    try {
+      var r = await fetch(profileUrl, { headers: {'Authorization': auths[ai], 'Accept': 'application/json'} });
+      console.log('auth', ai, 'status:', r.status);
+      if (r.ok) { okAuth = auths[ai]; break; }
+    } catch(e) { console.log('fetch error:', e.message); }
+  }
+  if (!okAuth) {
+    alert('Auth failed. Check API key in Intervals.icu Settings > Developer Settings.');
+    showScreen('intervals');
+    return;
   }
 
+  showScreen('oauth', 'Intervals.icu\u304b\u3089\u30c7\u30fc\u30bf\u53d6\u5f97\u4e2d...');
+  const oldest = new Date(Date.now() - days*86400000).toISOString().slice(0,10);
+  const newest = new Date().toISOString().slice(0,10);
+  const url = 'https://intervals.icu/api/v1/athlete/' + athleteId + '/activities?oldest=' + oldest + '&newest=' + newest;
   try {
-    let res = await tryFetch(auth1);
+    const res = await fetch(url, { headers: {'Authorization': okAuth, 'Accept': 'application/json'} });
     if (!res.ok) {
-      console.log('Format 1 failed, trying format 2...');
-      res = await tryFetch(auth2);
-    }
-    if (!res.ok) {
-      const body = await res.text();
-      console.error('ICU error body:', body);
-      alert('取得失敗 (' + res.status + ')\nURL: ' + url + '\n\n' + body.slice(0,200) + '\n\nAPIキーとアスリートIDを確認してください');
-      showScreen('intervals');
-      return;
+      const b = await res.text();
+      alert('Activities fetch failed (' + res.status + '): ' + b.slice(0,200));
+      showScreen('intervals'); return;
     }
     const data = await res.json();
-    const activities = data.map(icuToActivity).filter(a => a && a.time > 0);
-
-    // Merge with existing saved data
-    let existing = [];
-    try {
-      const raw = localStorage.getItem('saved_activities');
-      if (raw) existing = JSON.parse(raw).activities || [];
-    } catch(e) {}
-
-    const { merged, added, updated } = mergeActivities(existing, activities);
-
-    const snap = {
-      activities: merged,
-      label: 'Intervals.icu',
-      savedAt: new Date().toISOString(),
-      count: merged.length
-    };
-    try {
-      localStorage.setItem('saved_activities', JSON.stringify(snap));
-      checkSavedData();
-    } catch(e) { console.warn('Save failed:', e); }
-
-    const msg = added + '件追加、' + updated + '件更新 (合計 ' + merged.length + '件)';
-    renderDashboard(merged, 'Intervals.icu — ' + msg);
-
+    if (!Array.isArray(data)) {
+      alert('Data format error: ' + JSON.stringify(data).slice(0,200));
+      showScreen('intervals'); return;
+    }
+    const activities = data.map(icuToActivity).filter(function(a){ return a && a.time > 0; });
+    var existing = [];
+    try { var raw = localStorage.getItem('saved_activities'); if (raw) existing = JSON.parse(raw).activities || []; } catch(e2) {}
+    var mm = mergeActivities(existing, activities);
+    var snap = { activities: mm.merged, label: 'Intervals.icu', savedAt: new Date().toISOString(), count: mm.merged.length };
+    try { localStorage.setItem('saved_activities', JSON.stringify(snap)); checkSavedData(); } catch(e3) {}
+    renderDashboard(mm.merged, 'Intervals.icu - ' + mm.added + ' added, ' + mm.updated + ' updated (total ' + mm.merged.length + ')');
   } catch(e) {
-    alert('エラー: ' + e.message);
+    alert('Error: ' + e.message);
     showScreen('intervals');
   }
 }
+
+
 
 function icuToActivity(a) {
   const typeMap = {
