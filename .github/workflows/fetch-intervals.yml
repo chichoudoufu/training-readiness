@@ -2,8 +2,8 @@ name: Fetch Intervals.icu Data
 
 on:
   schedule:
-    - cron: '0 20 * * *'  # 毎日午前5時JST（UTC20時）
-  workflow_dispatch:       # 手動実行ボタンも有効
+    - cron: '0 20 * * *'
+  workflow_dispatch:
 
 jobs:
   fetch:
@@ -17,14 +17,37 @@ jobs:
 
       - name: Fetch activities from Intervals.icu
         run: |
-          OLDEST=$(date -d '150 days ago' +%Y-%m-%d 2>/dev/null || date -v-150d +%Y-%m-%d)
+          OLDEST=$(date -d '150 days ago' +%Y-%m-%d)
           NEWEST=$(date +%Y-%m-%d)
-          echo "Fetching $OLDEST to $NEWEST"
-          curl -sf \
+          echo "Fetching $OLDEST to $NEWEST for athlete ${{ secrets.ICU_ATHLETE_ID }}"
+          
+          # Try auth format 1: API:key
+          HTTP_CODE=$(curl -s -o activities.json -w "%{http_code}" \
             -u "API:${{ secrets.ICU_API_KEY }}" \
-            "https://intervals.icu/api/v1/athlete/${{ secrets.ICU_ATHLETE_ID }}/activities?oldest=${OLDEST}&newest=${NEWEST}" \
-            -o activities.json
-          echo "Fetched $(cat activities.json | python3 -c 'import sys,json; d=json.load(sys.stdin); print(len(d))' 2>/dev/null || echo '?') activities"
+            "https://intervals.icu/api/v1/athlete/${{ secrets.ICU_ATHLETE_ID }}/activities?oldest=${OLDEST}&newest=${NEWEST}")
+          
+          echo "HTTP response code: ${HTTP_CODE}"
+          
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Auth format 1 failed (${HTTP_CODE}), trying format 2..."
+            cat activities.json
+            
+            # Try auth format 2: athleteId:key
+            HTTP_CODE=$(curl -s -o activities.json -w "%{http_code}" \
+              -u "${{ secrets.ICU_ATHLETE_ID }}:${{ secrets.ICU_API_KEY }}" \
+              "https://intervals.icu/api/v1/athlete/${{ secrets.ICU_ATHLETE_ID }}/activities?oldest=${OLDEST}&newest=${NEWEST}")
+            
+            echo "Format 2 HTTP code: ${HTTP_CODE}"
+          fi
+          
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Both auth formats failed. Response:"
+            cat activities.json
+            exit 1
+          fi
+          
+          COUNT=$(python3 -c "import json,sys; d=json.load(open('activities.json')); print(len(d))" 2>/dev/null || echo "?")
+          echo "Success: ${COUNT} activities fetched"
 
       - name: Commit and push
         run: |
