@@ -115,7 +115,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
 
 .btn-disconnect { background: none; border: 1px solid var(--border2); color: var(--text2); border-radius: var(--r2); padding: 6px 12px; font-family:'Sora',sans-serif; font-size: 12px; cursor: pointer; }
 .btn-disconnect:hover { border-color: var(--red); color: var(--red); }
-.btn-saved { background: var(--bg3); border: 1px solid var(--border2); color: var(--text); border-radius: var(--r2); padding: 13px 20px; font-family:'Sora',sans-serif; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background 0.15s; width: 100%; }
+.btn-saved { background: var(--bg3); border: 1px solid var(--border2); color: var(--text); border-radius: var(--r2); padding: 13px 20px; font-family:'Sora',sans-serif; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; }
 .btn-saved:hover { background: #232738; }
 
 @media (max-width: 700px) {
@@ -148,47 +148,11 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
         📁 GarminのCSVファイルを読み込む
       </label>
       <div class="divider-or">または</div>
-      <button class="btn-upload" onclick="showIntervalsConfig()" style="background:var(--bg3)">
-        ⚡ Intervals.icuから取得
-      </button>
-      <div class="divider-or" id="divider-saved" style="display:none">または</div>
-      <button class="btn-saved" id="btn-saved" onclick="loadSavedData()" style="display:none">
-        💾 保存済みデータを表示
-      </button>
+      <button class="btn-upload" onclick="loadIntervalsJson()" style="background:var(--bg3)">⚡ Intervals.icu (自動更新)</button>
+      <div class="divider-or" id="div-saved" style="display:none">または</div>
+      <button class="btn-saved" id="btn-saved" onclick="loadSavedData()" style="display:none">💾 保存済みデータを表示</button>
     </div>
-    <p id="saved-info" style="font-size:11px;color:var(--text3);margin-top:12px;text-align:center"></p>
-  </div>
-</div>
-
-<!-- INTERVALS.ICU CONFIG -->
-<div id="screen-intervals" style="display:none; align-items:center; justify-content:center; min-height:calc(100vh - 65px)">
-  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:40px;max-width:480px;width:100%">
-    <h2 style="font-size:17px;font-weight:600;margin-bottom:6px">Intervals.icu 設定</h2>
-    <p style="color:var(--text2);font-size:12px;margin-bottom:24px">
-      <a href="https://intervals.icu/settings" target="_blank" style="color:var(--accent)">intervals.icu/settings</a> →「Developer Settings」→「API Key」を確認してください。<br>
-      アスリートIDはプロフィールURL（intervals.icu/athlete/<b>i12345</b>/overview）の数字部分です。
-    </p>
-    <div style="margin-bottom:16px">
-      <label style="display:block;font-size:12px;color:var(--text2);margin-bottom:6px">アスリートID（例: i12345）</label>
-      <input type="text" id="icu-athlete-id" placeholder="i12345"
-        style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:10px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none">
-    </div>
-    <div style="margin-bottom:16px">
-      <label style="display:block;font-size:12px;color:var(--text2);margin-bottom:6px">API Key</label>
-      <input type="password" id="icu-api-key" placeholder="xxxxxxxxxxxxxxxx"
-        style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:10px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none">
-    </div>
-    <div style="margin-bottom:20px">
-      <label style="display:block;font-size:12px;color:var(--text2);margin-bottom:6px">取得期間（日数）</label>
-      <input type="number" id="icu-days" value="120" min="7" max="365"
-        style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:10px 12px;color:var(--text);font-size:13px;outline:none">
-    </div>
-    <button onclick="loadIntervalsData()" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--r2);padding:12px;font-family:'Sora',sans-serif;font-size:14px;font-weight:500;cursor:pointer">
-      データを取得する →
-    </button>
-    <button onclick="showScreen('connect')" style="background:none;border:none;color:var(--text2);font-family:'Sora',sans-serif;font-size:13px;cursor:pointer;margin-top:12px;width:100%">
-      ← 戻る
-    </button>
+    <p id="saved-info" style="font-size:11px;color:var(--text3);margin-top:10px;text-align:center"></p>
   </div>
 </div>
 
@@ -196,7 +160,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
 <div id="screen-oauth" style="display:none">
   <div class="oauth-box">
     <div class="spinner"></div>
-    <p id="oauth-msg" style="color:var(--text2)">接続中...</p>
+    <p style="color:var(--text2)">Stravaと接続中...</p>
   </div>
 </div>
 
@@ -229,10 +193,8 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
 // ─────────────────────────────────────────────
 // SCREEN ROUTING
 // ─────────────────────────────────────────────
-const screens = ['connect','intervals','oauth','dashboard'];
-function showScreen(name, msg) {
-  const oauthMsg = document.getElementById('oauth-msg');
-  if (oauthMsg && name === 'oauth') oauthMsg.textContent = msg || '接続中...';
+const screens = ['connect','oauth','dashboard'];
+function showScreen(name) {
   screens.forEach(s => {
     const el = document.getElementById('screen-' + s);
     if (el) el.style.display = s === name ? (s === 'dashboard' ? 'block' : 'flex') : 'none';
@@ -309,7 +271,7 @@ async function getValidToken() {
 }
 
 async function loadStravaData(token) {
-  showScreen('oauth', 'Stravaからデータ取得中...');
+  showScreen('oauth');
   const validToken = token || await getValidToken();
   if (!validToken) { showScreen('connect'); return; }
   const days = 120;
@@ -365,64 +327,15 @@ function stravaTypeToJa(t) {
 // ─────────────────────────────────────────────
 // GARMIN CSV
 // ─────────────────────────────────────────────
-function activityKey(a) {
-  return a.date + '|' + a.type + '|' + Math.round(a.time);
-}
-
-function mergeActivities(existing, incoming) {
-  const map = {};
-  existing.forEach(a => { map[activityKey(a)] = a; });
-  let added = 0, updated = 0;
-  incoming.forEach(a => {
-    const k = activityKey(a);
-    if (!map[k]) { map[k] = a; added++; }
-    else if ((a.tss > 0 && !map[k].tss) || (a.avgHR && !map[k].avgHR)) {
-      map[k] = a; updated++;
-    }
-  });
-  const merged = Object.values(map).sort((a,b) => b.date.localeCompare(a.date));
-  return { merged, added, updated };
-}
-
 function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
     const text = e.target.result;
-    const incoming = parseGarminCSV(text);
-    if (incoming.length === 0) {
-      alert('No activities found. Please check CSV format.');
-      return;
-    }
-
-    // Load existing saved activities and merge
-    let existing = [];
-    try {
-      const raw = localStorage.getItem('saved_activities');
-      if (raw) existing = JSON.parse(raw).activities || [];
-    } catch(err) {}
-
-    const { merged, added, updated } = mergeActivities(existing, incoming);
-
-    // Auto-save merged result
-    const snap = {
-      activities: merged,
-      label: 'Garmin CSV',
-      savedAt: new Date().toISOString(),
-      count: merged.length
-    };
-    try {
-      localStorage.setItem('saved_activities', JSON.stringify(snap));
-      checkSavedData();
-    } catch(err) { console.warn('Save failed:', err); }
-
-    const msg = added > 0 || updated > 0
-      ? added + '件追加、' + updated + '件更新 (合計 ' + merged.length + '件)'
-      : '新規データなし (合計 ' + merged.length + '件)';
-    document.getElementById('source-label').textContent = 'Garmin — ' + msg;
-
-    renderDashboard(merged, 'Garmin CSV');
+    const activities = parseGarminCSV(text);
+    if (activities.length === 0) { alert('アクティビティが見つかりませんでした'); return; }
+    renderDashboard(activities, 'Garmin CSV: ' + file.name);
   };
   reader.readAsText(file, 'UTF-8');
 }
@@ -583,47 +496,7 @@ function renderDashboard(activities, sourceLabel) {
   showScreen('dashboard');
   document.getElementById('source-label').textContent = sourceLabel;
 
-  // Decompose multisport into swim/bike/run by race type
-  function decomposeMultisport(a) {
-    const h = a.time / 60;
-    var sf, bf, rf, st, bt, rt;
-    if (h >= 8) {
-      // Full Ironman
-      sf=0.107; bf=0.560; rf=0.333;
-      st=60; bt=65; rt=70;
-    } else if (h >= 3.5) {
-      // Half Ironman
-      sf=0.13; bf=0.55; rf=0.32;
-      st=62; bt=72; rt=75;
-    } else if (h >= 1.5) {
-      // Olympic
-      sf=0.17; bf=0.50; rf=0.33;
-      st=65; bt=78; rt=80;
-    } else {
-      // Sprint
-      sf=0.18; bf=0.48; rf=0.34;
-      st=65; bt=82; rt=85;
-    }
-    return [
-      Object.assign({}, a, {type:'プールスイム', time:h*sf*60, dist:0,         tss:Math.round(h*sf*st)}),
-      Object.assign({}, a, {type:'ロードサイクリング', time:h*bf*60, dist:a.dist*bf, tss:Math.round(h*bf*bt), np:null}),
-      Object.assign({}, a, {type:'ラン', time:h*rf*60, dist:a.dist*rf, tss:Math.round(h*rf*rt), np:null}),
-    ];
-  }
-
-  const expanded = [];
-  activities.forEach(function(a) {
-    var isMulti = a.type.includes('マルチスポーツ') ||
-                  a.type.includes('Multisport') ||
-                  a.type.includes('トライアスロン');
-    if (isMulti) {
-      decomposeMultisport(a).forEach(function(x){ expanded.push(x); });
-    } else {
-      expanded.push(a);
-    }
-  });
-
-  const sorted = [...expanded].sort((a,b) => a.date.localeCompare(b.date));
+  const sorted = [...activities].sort((a,b) => a.date.localeCompare(b.date));
   const startDate = sorted[0]?.date || new Date().toISOString().slice(0,10);
   const endDate = sorted[sorted.length-1]?.date || new Date().toISOString().slice(0,10);
   const ts = buildTimeSeries(sorted, startDate, endDate);
@@ -697,55 +570,14 @@ HTMLタグは使わず、マークダウン（**太字**）のみ使用してく
     const text = data.content?.[0]?.text || 'アドバイスを取得できませんでした';
     el.innerHTML = '<div class="advice-text">' + markdownToHtml(text) + '</div>';
   } catch(e) {
-    const ratio = curATL / (curCTL || 1);
-    const tsbState = curTSB > 10 ? 'peak'
-                   : curTSB > 0  ? 'fresh'
-                   : curTSB > -10 ? 'normal'
-                   : curTSB > -25 ? 'tired'
-                   : 'overreached';
-
-    const stateText = {
-      peak:       'TSBがプラスでレース準備が整った状態です。この状態を維持しながら短めの刺激練習を1本入れておきましょう。',
-      fresh:      'TSBがわずかにプラスで、フォームが良好です。強度の高いセッションや短いレースに最適なタイミングです。',
-      normal:     'TSBがほぼゼロ付近で、通常トレーニングが継続できる状態です。計画通りのメニューを実施してください。',
-      tired:      'TSBがマイナスで疲労が蓄積しています。今週は強度を落とし、有酸素ゾーン中心の練習にとどめましょう。',
-      overreached: 'TSBが-25を下回り、オーバーリーチの可能性があります。2〜3日は完全休養またはリカバリースイムのみにしてください。'
-    }[tsbState];
-
-    const loadText = ratio > 1.4
-      ? 'ATL/CTL比が1.4を超えており、急激な負荷増加が見られます。怪我のリスクが高まっているため、今週は負荷を抑えてください。'
-      : ratio > 1.15
-      ? 'ATLがCTLを上回っており、トレーニング負荷が増加フェーズにあります。回復日をしっかり確保しながら継続しましょう。'
-      : ratio < 0.8
-      ? 'ATLがCTLを大きく下回っています。トレーニング量が減少しているため、CTLの低下に注意が必要です。'
-      : 'ATL/CTL比が適切な範囲内にあります。このペースで継続できています。';
-
-    const vo2Text = curVO2
-      ? (curVO2 >= 55 ? `VO2max推定値 ${curVO2} mL/kg/min は年代別トップレベルです。`
-        : curVO2 >= 50 ? `VO2max推定値 ${curVO2} mL/kg/min は良好な水準です。インターバル練習でさらなる向上が期待できます。`
-        : `VO2max推定値 ${curVO2} mL/kg/min です。週1〜2回のVO2maxインターバル（4〜5分×4本）が有効です。`)
-      : 'VO2maxの推定にはランニングパワーデータが必要です。';
-
-    const ftpText = curFTP
-      ? `FTP推定値 ${curFTP}W。バイクの閾値練習（20分×2本）を月1〜2回実施してFTPの維持・向上を図りましょう。`
-      : 'FTP推定値が取得できていません。20分の全力走データがあると推定できます。';
-
-    const weeklyRec = tsbState === 'peak' || tsbState === 'fresh'
-      ? '今週の推奨：高強度セッション1本＋有酸素ロング1本＋残りはZ2（有酸素ゾーン）で調整。'
-      : tsbState === 'tired' || tsbState === 'overreached'
-      ? '今週の推奨：強度を落としZ1〜Z2のみ。スイム中心でリカバリーを優先してください。'
-      : '今週の推奨：閾値練習1本（バイクかラン）＋ロング有酸素1本＋スイム2〜3回のバランスを目指しましょう。';
-
-    el.innerHTML = '<div class="advice-text">'
-      + '<strong>コンディション評価</strong>　CTL ' + curCTL.toFixed(0)
-      + ' / ATL ' + curATL.toFixed(0)
-      + ' / TSB ' + (curTSB > 0 ? '+' : '') + curTSB.toFixed(0) + '<br>'
-      + stateText + '<br><br>'
-      + '<strong>負荷バランス</strong><br>' + loadText + '<br><br>'
-      + '<strong>今週の推奨メニュー</strong><br>' + weeklyRec + '<br><br>'
-      + '<strong>有酸素能力</strong><br>' + vo2Text + '<br><br>'
-      + '<strong>バイクパワー</strong><br>' + ftpText
-      + '</div>';
+    el.innerHTML = `<div class="advice-text">
+      <strong>現在のコンディション評価</strong><br>
+      CTL ${curCTL.toFixed(0)} / ATL ${curATL.toFixed(0)} / TSB ${curTSB>0?'+':''}${curTSB.toFixed(0)}。
+      ${curTSB < -10 ? '疲労が蓄積しています。回復を優先しましょう。' : curTSB > 5 ? 'フォームが良好です。レースや強度練習に適しています。' : '通常のトレーニング継続が可能です。'}
+      <br><br>
+      <strong>今週の推奨</strong><br>
+      ${curATL > curCTL * 1.3 ? 'ATLがCTLを大きく上回っています。軽めのリカバリーランと休息を優先してください。' : 'ベーストレーニングを継続しながら週1回の質的練習を入れましょう。'}
+    </div>`;
   }
 }
 
@@ -956,90 +788,32 @@ window.renderDashboard = function(activities, sourceLabel) {
 // ─────────────────────────────────────────────
 // DISCONNECT
 // ─────────────────────────────────────────────
-// ─── INTERVALS.ICU ───
-function showIntervalsConfig() {
-  const savedId  = localStorage.getItem('icu_athlete_id') || '';
-  const savedKey = localStorage.getItem('icu_api_key') || '';
-  if (savedId)  document.getElementById('icu-athlete-id').value = savedId;
-  if (savedKey) document.getElementById('icu-api-key').value = savedKey;
-  showScreen('intervals');
+function disconnect() {
+  localStorage.removeItem('strava_token');
+  localStorage.removeItem('strava_athlete');
+  destroyCharts();
+  showScreen('connect');
 }
 
-async function loadIntervalsData() {
-  const athleteId = document.getElementById('icu-athlete-id').value.trim();
-  const apiKey    = document.getElementById('icu-api-key').value.trim();
-  const days      = parseInt(document.getElementById('icu-days').value) || 120;
-  if (!athleteId || !apiKey) { alert('ID and API key required'); return; }
-  localStorage.setItem('icu_athlete_id', athleteId);
-  localStorage.setItem('icu_api_key', apiKey);
-  showScreen('oauth', 'Intervals.icu\u306b\u63a5\u7d9a\u4e2d...');
-
-  const auths = [
-    'Basic ' + btoa('API:' + apiKey),
-    'Basic ' + btoa(athleteId + ':' + apiKey),
-    'Basic ' + btoa(athleteId.replace(/^i/,'') + ':' + apiKey),
-  ];
-  const profileUrl = 'https://intervals.icu/api/v1/athlete/' + athleteId;
-  let okAuth = null;
-  for (var ai = 0; ai < auths.length; ai++) {
-    try {
-      var r = await fetch(profileUrl, { headers: {'Authorization': auths[ai], 'Accept': 'application/json'} });
-      console.log('auth', ai, 'status:', r.status);
-      if (r.ok) { okAuth = auths[ai]; break; }
-    } catch(e) { console.log('fetch error:', e.message); }
-  }
-  if (!okAuth) {
-    alert('Auth failed. Check API key in Intervals.icu Settings > Developer Settings.');
-    showScreen('intervals');
-    return;
-  }
-
-  showScreen('oauth', 'Intervals.icu\u304b\u3089\u30c7\u30fc\u30bf\u53d6\u5f97\u4e2d...');
-  const oldest = new Date(Date.now() - days*86400000).toISOString().slice(0,10);
-  const newest = new Date().toISOString().slice(0,10);
-  const url = 'https://intervals.icu/api/v1/athlete/' + athleteId + '/activities?oldest=' + oldest + '&newest=' + newest;
-  try {
-    const res = await fetch(url, { headers: {'Authorization': okAuth, 'Accept': 'application/json'} });
-    if (!res.ok) {
-      const b = await res.text();
-      alert('Activities fetch failed (' + res.status + '): ' + b.slice(0,200));
-      showScreen('intervals'); return;
-    }
-    const data = await res.json();
-    if (!Array.isArray(data)) {
-      alert('Data format error: ' + JSON.stringify(data).slice(0,200));
-      showScreen('intervals'); return;
-    }
-    const activities = data.map(icuToActivity).filter(function(a){ return a && a.time > 0; });
-    var existing = [];
-    try { var raw = localStorage.getItem('saved_activities'); if (raw) existing = JSON.parse(raw).activities || []; } catch(e2) {}
-    var mm = mergeActivities(existing, activities);
-    var snap = { activities: mm.merged, label: 'Intervals.icu', savedAt: new Date().toISOString(), count: mm.merged.length };
-    try { localStorage.setItem('saved_activities', JSON.stringify(snap)); checkSavedData(); } catch(e3) {}
-    renderDashboard(mm.merged, 'Intervals.icu - ' + mm.added + ' added, ' + mm.updated + ' updated (total ' + mm.merged.length + ')');
-  } catch(e) {
-    alert('Error: ' + e.message);
-    showScreen('intervals');
-  }
-}
-
-
-
+// ─────────────────────────────────────────────
+// INIT — check OAuth callback or saved token
+// ─────────────────────────────────────────────
+// ICU activity type mapping
 function icuToActivity(a) {
-  const typeMap = {
-    'Run': 'ラン', 'VirtualRun': 'ラン', 'TrailRun': 'ラン',
-    'Treadmill': 'トレッドミル',
-    'Ride': 'ロードサイクリング',
-    'VirtualRide': '仓想サイクリング',
-    'MountainBikeRide': 'マウンテンバイク',
-    'Swim': 'プールスイム',
-    'OpenWaterSwim': '屋外スイム',
-    'Walk': 'ウォーク',
-    'WeightTraining': '筋力トレーニング',
-    'Multisport': 'マルチスポーツ',
-    'Triathlon': 'マルチスポーツ',
+  var typeMap = {
+    Run: 'ラン', VirtualRun: 'ラン', TrailRun: 'ラン',
+    Treadmill: 'トレッドミル',
+    Ride: 'ロードサイクリング',
+    VirtualRide: '仓想サイクリング',
+    MountainBikeRide: 'マウンテンバイク',
+    Swim: 'プールスイム',
+    OpenWaterSwim: '屋外スイム',
+    Walk: 'ウォーク',
+    WeightTraining: '筋力トレーニング',
+    Multisport: 'マルチスポーツ',
+    Triathlon: 'マルチスポーツ'
   };
-  const type = typeMap[a.type] || a.type || 'その他';
+  var type = typeMap[a.type] || a.type || 'その他';
   return {
     type: type,
     date: (a.start_date_local || '').slice(0, 10),
@@ -1054,78 +828,91 @@ function icuToActivity(a) {
   };
 }
 
-function disconnect() {
-  localStorage.removeItem('strava_token');
-  localStorage.removeItem('strava_athlete');
-  destroyCharts();
-  showScreen('connect');
+function activityKey(a) {
+  return a.date + '|' + a.type + '|' + Math.round(a.time);
 }
 
-// Save/Load snapshot
-let _currentActivities = null;
-let _currentLabel = null;
+function mergeActivities(existing, incoming) {
+  var map = {};
+  existing.forEach(function(a) { map[activityKey(a)] = a; });
+  var added = 0, updated = 0;
+  incoming.forEach(function(a) {
+    var k = activityKey(a);
+    if (!map[k]) { map[k] = a; added++; }
+    else if ((a.tss > 0 && !map[k].tss) || (a.avgHR && !map[k].avgHR)) { map[k] = a; updated++; }
+  });
+  var merged = Object.values(map).sort(function(a,b){ return b.date.localeCompare(a.date); });
+  return { merged: merged, added: added, updated: updated };
+}
+
+async function loadIntervalsJson() {
+  showScreen('oauth');
+  try {
+    var res = await fetch('./activities.json?t=' + Date.now());
+    if (!res.ok) {
+      alert('activities.json not found. Run GitHub Actions first.');
+      showScreen('connect'); return;
+    }
+    var data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      alert('activities.json is empty. Run GitHub Actions.');
+      showScreen('connect'); return;
+    }
+    var activities = data.map(icuToActivity).filter(function(a){ return a && a.time > 0; });
+    var existing = [];
+    try { var r2 = localStorage.getItem('saved_activities'); if (r2) existing = JSON.parse(r2).activities || []; } catch(e2) {}
+    var mm = mergeActivities(existing, activities);
+    var snap = { activities: mm.merged, label: 'Intervals.icu', savedAt: new Date().toISOString(), count: mm.merged.length };
+    try { localStorage.setItem('saved_activities', JSON.stringify(snap)); checkSavedData(); } catch(e3) {}
+    renderDashboard(mm.merged, 'Intervals.icu - ' + mm.merged.length + ' activities');
+  } catch(e) {
+    alert('Error: ' + e.message);
+    showScreen('connect');
+  }
+}
+
+var _currentActivities = null;
+var _currentLabel = null;
 
 function saveCurrentData() {
-  if (!_currentActivities || !_currentActivities.length) {
-    alert('No data to save');
-    return;
-  }
-  const snapshot = {
-    activities: _currentActivities,
-    label: _currentLabel || 'Manual save',
-    savedAt: new Date().toISOString(),
-    count: _currentActivities.length
-  };
+  if (!_currentActivities || !_currentActivities.length) { alert('No data to save'); return; }
+  var snap = { activities: _currentActivities, label: _currentLabel || 'Manual', savedAt: new Date().toISOString(), count: _currentActivities.length };
   try {
-    localStorage.setItem('saved_activities', JSON.stringify(snapshot));
+    localStorage.setItem('saved_activities', JSON.stringify(snap));
     checkSavedData();
-    alert('保存しました (' + _currentActivities.length + '件)');
-  } catch(e) {
-    alert('保存失敗: ' + e.message);
-  }
+    alert('Saved ' + _currentActivities.length + ' activities');
+  } catch(e) { alert('Save failed: ' + e.message); }
 }
 
 function loadSavedData() {
-  const raw = localStorage.getItem('saved_activities');
-  if (!raw) { alert('保存済みデータがありません'); return; }
+  var raw = localStorage.getItem('saved_activities');
+  if (!raw) { alert('No saved data'); return; }
   try {
-    const snap = JSON.parse(raw);
-    const savedDate = new Date(snap.savedAt).toLocaleString('ja-JP');
-    window.renderDashboard(snap.activities, snap.label + ' [保存済 ' + savedDate + ']');
-  } catch(e) {
-    alert('読み込み失敗: ' + e.message);
-  }
+    var snap = JSON.parse(raw);
+    var d = new Date(snap.savedAt).toLocaleString('ja-JP');
+    renderDashboard(snap.activities, (snap.label || 'Saved') + ' [' + d + ']');
+  } catch(e) { alert('Load failed: ' + e.message); }
 }
 
 function checkSavedData() {
-  const raw = localStorage.getItem('saved_activities');
-  const btn = document.getElementById('btn-saved');
-  const info = document.getElementById('saved-info');
+  var raw = localStorage.getItem('saved_activities');
   if (!raw) return;
   try {
-    const snap = JSON.parse(raw);
-    const d = new Date(snap.savedAt).toLocaleDateString('ja-JP');
-    const oldest = snap.activities && snap.activities.length
-      ? snap.activities[snap.activities.length-1].date
-      : '-';
-    const newest = snap.activities && snap.activities.length
-      ? snap.activities[0].date
-      : '-';
-    if (btn) { btn.style.display = 'flex'; }
-    const div = document.getElementById('divider-saved');
+    var snap = JSON.parse(raw);
+    var d = new Date(snap.savedAt).toLocaleDateString('ja-JP');
+    var acts = snap.activities || [];
+    var newest = acts.length ? acts[0].date : '-';
+    var oldest = acts.length ? acts[acts.length-1].date : '-';
+    var btn = document.getElementById('btn-saved');
+    var div = document.getElementById('div-saved');
+    var info = document.getElementById('saved-info');
+    if (btn) btn.style.display = 'flex';
     if (div) div.style.display = 'flex';
-    if (info) {
-      info.style.display = 'block';
-      info.textContent = snap.count + '件保存済み (' + oldest + ' 〜 ' + newest + ' / ' + d + ' 更新)';
-    }
+    if (info) info.textContent = snap.count + ' activities saved (' + oldest + ' to ' + newest + ', updated ' + d + ')';
   } catch(e) {}
 }
 
-// ─────────────────────────────────────────────
-// INIT — check OAuth callback or saved token
-// ─────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
-  checkSavedData();
   const params = new URLSearchParams(window.location.search);
   const code = params.get('code');
   const savedToken = localStorage.getItem('strava_token');
