@@ -328,14 +328,22 @@ function stravaTypeToJa(t) {
 // GARMIN CSV
 // ─────────────────────────────────────────────
 function handleFileUpload(event) {
-  const file = event.target.files[0];
+  var file = event.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const text = e.target.result;
-    const activities = parseGarminCSV(text);
-    if (activities.length === 0) { alert('アクティビティが見つかりませんでした'); return; }
-    renderDashboard(activities, 'Garmin CSV: ' + file.name);
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var text = e.target.result;
+    var incoming = parseGarminCSV(text);
+    if (incoming.length === 0) {
+      alert('No activities found in CSV. Check file format.');
+      return;
+    }
+    var existing = [];
+    try { var r=localStorage.getItem('saved_activities'); if(r) existing=JSON.parse(r).activities||[]; } catch(e2){}
+    var mm = mergeActivities(existing, incoming);
+    var snap = { activities: mm.merged, label: 'Garmin CSV', savedAt: new Date().toISOString(), count: mm.merged.length };
+    try { localStorage.setItem('saved_activities', JSON.stringify(snap)); checkSavedData(); } catch(e3){}
+    renderDashboard(mm.merged, 'Garmin CSV - ' + mm.added + ' added, ' + mm.updated + ' updated (total ' + mm.merged.length + ')');
   };
   reader.readAsText(file, 'UTF-8');
 }
