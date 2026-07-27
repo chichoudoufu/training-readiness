@@ -504,7 +504,34 @@ function renderDashboard(activities, sourceLabel) {
   showScreen('dashboard');
   document.getElementById('source-label').textContent = sourceLabel;
 
-  const sorted = [...activities].sort((a,b) => a.date.localeCompare(b.date));
+  // Decompose multisport into swim/bike/run by race type
+  function decomposeMultisport(a) {
+    var h = a.time / 60;
+    var sf, bf, rf, st, bt, rt;
+    if (h >= 8)       { sf=0.107; bf=0.560; rf=0.333; st=60; bt=65; rt=70; }
+    else if (h >= 3.5){ sf=0.13;  bf=0.55;  rf=0.32;  st=62; bt=72; rt=75; }
+    else if (h >= 1.5){ sf=0.17;  bf=0.50;  rf=0.33;  st=65; bt=78; rt=80; }
+    else              { sf=0.18;  bf=0.48;  rf=0.34;  st=65; bt=82; rt=85; }
+    return [
+      Object.assign({}, a, {type:'プールスイム',       time:h*sf*60, dist:0,         tss:Math.round(h*sf*st)}),
+      Object.assign({}, a, {type:'ロードサイクリング', time:h*bf*60, dist:a.dist*bf, tss:Math.round(h*bf*bt), np:null}),
+      Object.assign({}, a, {type:'ラン',                               time:h*rf*60, dist:a.dist*rf, tss:Math.round(h*rf*rt), np:null}),
+    ];
+  }
+
+  var expanded = [];
+  activities.forEach(function(a) {
+    var isMulti = a.type.includes('マルチスポーツ') ||
+                  a.type.includes('Multisport') ||
+                  a.type.includes('トライアスロン');
+    if (isMulti) {
+      decomposeMultisport(a).forEach(function(x){ expanded.push(x); });
+    } else {
+      expanded.push(a);
+    }
+  });
+
+  const sorted = [...expanded].sort((a,b) => a.date.localeCompare(b.date));
   const startDate = sorted[0]?.date || new Date().toISOString().slice(0,10);
   const endDate = sorted[sorted.length-1]?.date || new Date().toISOString().slice(0,10);
   const ts = buildTimeSeries(sorted, startDate, endDate);
@@ -578,14 +605,45 @@ HTMLタグは使わず、マークダウン（**太字**）のみ使用してく
     const text = data.content?.[0]?.text || 'アドバイスを取得できませんでした';
     el.innerHTML = '<div class="advice-text">' + markdownToHtml(text) + '</div>';
   } catch(e) {
-    el.innerHTML = `<div class="advice-text">
-      <strong>現在のコンディション評価</strong><br>
-      CTL ${curCTL.toFixed(0)} / ATL ${curATL.toFixed(0)} / TSB ${curTSB>0?'+':''}${curTSB.toFixed(0)}。
-      ${curTSB < -10 ? '疲労が蓄積しています。回復を優先しましょう。' : curTSB > 5 ? 'フォームが良好です。レースや強度練習に適しています。' : '通常のトレーニング継続が可能です。'}
-      <br><br>
-      <strong>今週の推奨</strong><br>
-      ${curATL > curCTL * 1.3 ? 'ATLがCTLを大きく上回っています。軽めのリカバリーランと休息を優先してください。' : 'ベーストレーニングを継続しながら週1回の質的練習を入れましょう。'}
-    </div>`;
+    const ratio = curATL / (curCTL || 1);
+    const tsbState = curTSB > 10 ? 'peak' : curTSB > 0 ? 'fresh' : curTSB > -10 ? 'normal' : curTSB > -25 ? 'tired' : 'overreached';
+    const stateText = {
+      peak:       'TSBがプラス10以上でレース準備が整った状態です。この状態を維持しながら短めの刺激練習を1本入れておきましょう。',
+      fresh:      'TSBがわずかにプラスで、フォームが良好です。強度の高いセッションや短いレースに最適なタイミングです。',
+      normal:     'TSBがほぼゼロ付近で通常トレーニングが継続できる状態です。計画通りのメニューを実施してください。',
+      tired:      'TSBがマイナスで疲労が蓄積しています。今週は強度を落とし、有酸素ゾーン中心の練習にとどめましょう。',
+      overreached:'TSBが-25を下回りオーバーリーチの可能性があります。2〜3日は完全休養またはリカバリースイムのみにしてください。'
+    }[tsbState];
+    const loadText = ratio > 1.4
+      ? 'ATL/CTL比が1.4を超えており急激な負荷増加が見られます。怪我リスクが高まっているため今週は負荷を抑えてください。'
+      : ratio > 1.15
+      ? 'ATLがCTLを上回っておりトレーニング負荷が増加フェーズにあります。回復日をしっかり確保しながら継続しましょう。'
+      : ratio < 0.8
+      ? 'ATLがCTLを大きく下回っています。トレーニング量が減少しているためCTLの低下に注意が必要です。'
+      : 'ATL/CTL比が適切な範囲内にあります。このペースで継続できています。';
+    const vo2Text = curVO2
+      ? (curVO2 >= 55 ? 'VO2max推定値 ' + curVO2 + ' mL/kg/min は年代別トップレベルです。'
+        : curVO2 >= 50 ? 'VO2max推定値 ' + curVO2 + ' mL/kg/min は良好な水準です。インターバル練習でさらなる向上が期待できます。'
+        : 'VO2max推定値 ' + curVO2 + ' mL/kg/min です。週1〜2回のVO2maxインターバル（4〜5分×4本）が有効です。')
+      : 'VO2maxの推定にはランニングパワーデータが必要です。';
+    const ftpText = curFTP
+      ? 'FTP推定値 ' + curFTP + 'W。バイクの閾値練習（20分×2本）を月1〜2回実施してFTPの維持・向上を図りましょう。'
+      : 'FTP推定値が取得できていません。20分の全力走データがあると推定できます。';
+    const weeklyRec = (tsbState === 'peak' || tsbState === 'fresh')
+      ? '今週の推奨：高強度セッション1本＋有酸素ロング1本＋残りはZ2（有酸素ゾーン）で調整。'
+      : (tsbState === 'tired' || tsbState === 'overreached')
+      ? '今週の推奨：強度を落としZ1〜Z2のみ。スイム中心でリカバリーを優先してください。'
+      : '今週の推奨：閾値練習1本（バイクかラン）＋ロング有酸素1本＋スイム2〜3回のバランスを目指しましょう。';
+    el.innerHTML = '<div class="advice-text">'
+      + '<strong>コンディション評価</strong>　CTL ' + curCTL.toFixed(0)
+      + ' / ATL ' + curATL.toFixed(0)
+      + ' / TSB ' + (curTSB > 0 ? '+' : '') + curTSB.toFixed(0) + '<br>'
+      + stateText + '<br><br>'
+      + '<strong>負荷バランス</strong><br>' + loadText + '<br><br>'
+      + '<strong>' + weeklyRec.split('：')[0] + '</strong><br>' + (weeklyRec.split('：')[1]||weeklyRec) + '<br><br>'
+      + '<strong>有酸素能力</strong><br>' + vo2Text + '<br><br>'
+      + '<strong>バイクパワー</strong><br>' + ftpText
+      + '</div>';
   }
 }
 
@@ -921,14 +979,12 @@ function checkSavedData() {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
+  checkSavedData();
   const params = new URLSearchParams(window.location.search);
   const code = params.get('code');
-  const savedToken = localStorage.getItem('strava_token');
 
   if (code) {
     await handleOAuthCallback(code);
-  } else if (savedToken) {
-    await loadStravaData(null);
   } else {
     showScreen('connect');
   }
