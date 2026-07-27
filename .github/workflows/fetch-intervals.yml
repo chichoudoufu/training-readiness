@@ -19,35 +19,45 @@ jobs:
         run: |
           OLDEST=$(date -d '150 days ago' +%Y-%m-%d)
           NEWEST=$(date +%Y-%m-%d)
-          echo "Fetching $OLDEST to $NEWEST for athlete ${{ secrets.ICU_ATHLETE_ID }}"
+          ATHLETE="${{ secrets.ICU_ATHLETE_ID }}"
+          KEY="${{ secrets.ICU_API_KEY }}"
+          BASE_URL="https://intervals.icu/api/v1/athlete/${ATHLETE}/activities?oldest=${OLDEST}&newest=${NEWEST}"
           
-          # Try auth format 1: API:key
-          HTTP_CODE=$(curl -s -o activities.json -w "%{http_code}" \
-            -u "API:${{ secrets.ICU_API_KEY }}" \
-            "https://intervals.icu/api/v1/athlete/${{ secrets.ICU_ATHLETE_ID }}/activities?oldest=${OLDEST}&newest=${NEWEST}")
+          echo "Fetching ${OLDEST} to ${NEWEST}"
           
-          echo "HTTP response code: ${HTTP_CODE}"
+          # Format 1: API:key (standard documented format)
+          CODE=$(curl -s -o out.json -w "%{http_code}" -u "API:${KEY}" "${BASE_URL}")
+          echo "Format 1 (API:key): ${CODE}"
+          [ "$CODE" = "200" ] && mv out.json activities.json && echo "Success with format 1" && exit 0
           
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "Auth format 1 failed (${HTTP_CODE}), trying format 2..."
-            cat activities.json
-            
-            # Try auth format 2: athleteId:key
-            HTTP_CODE=$(curl -s -o activities.json -w "%{http_code}" \
-              -u "${{ secrets.ICU_ATHLETE_ID }}:${{ secrets.ICU_API_KEY }}" \
-              "https://intervals.icu/api/v1/athlete/${{ secrets.ICU_ATHLETE_ID }}/activities?oldest=${OLDEST}&newest=${NEWEST}")
-            
-            echo "Format 2 HTTP code: ${HTTP_CODE}"
-          fi
+          # Format 2: athleteId:key
+          CODE=$(curl -s -o out.json -w "%{http_code}" -u "${ATHLETE}:${KEY}" "${BASE_URL}")
+          echo "Format 2 (id:key): ${CODE}"
+          [ "$CODE" = "200" ] && mv out.json activities.json && echo "Success with format 2" && exit 0
           
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "Both auth formats failed. Response:"
-            cat activities.json
-            exit 1
-          fi
+          # Format 3: Bearer token
+          CODE=$(curl -s -o out.json -w "%{http_code}" -H "Authorization: Bearer ${KEY}" "${BASE_URL}")
+          echo "Format 3 (Bearer): ${CODE}"
+          [ "$CODE" = "200" ] && mv out.json activities.json && echo "Success with format 3" && exit 0
           
-          COUNT=$(python3 -c "import json,sys; d=json.load(open('activities.json')); print(len(d))" 2>/dev/null || echo "?")
-          echo "Success: ${COUNT} activities fetched"
+          # Format 4: x-api-key header
+          CODE=$(curl -s -o out.json -w "%{http_code}" -H "x-api-key: ${KEY}" "${BASE_URL}")
+          echo "Format 4 (x-api-key): ${CODE}"
+          [ "$CODE" = "200" ] && mv out.json activities.json && echo "Success with format 4" && exit 0
+          
+          echo "All formats failed. Last response:"
+          cat out.json
+          
+          # Test without auth to see what error we get
+          CODE_NOAUTH=$(curl -s -o noauth.json -w "%{http_code}" "${BASE_URL}")
+          echo "No-auth response (${CODE_NOAUTH}):"
+          cat noauth.json
+          exit 1
+
+      - name: Count and verify
+        run: |
+          COUNT=$(python3 -c "import json; d=json.load(open('activities.json')); print(len(d))" 2>/dev/null || echo "?")
+          echo "Fetched ${COUNT} activities"
 
       - name: Commit and push
         run: |
