@@ -1,5 +1,125 @@
 [
   {
+    "type": "筋力トレーニング",
+    "date": "2026-08-04",
+    "dist": 0.0,
+    "time": 17.96,
+    "avgHR": 104,
+    "maxHR": 126,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "筋トレ"
+  },
+  {
+    "type": "トレッドミル",
+    "date": "2026-08-04",
+    "dist": 5.318,
+    "time": 31.02,
+    "avgHR": 133,
+    "maxHR": 169,
+    "np": 253,
+    "tss": 0.0,
+    "p20": null,
+    "name": "トレッドミル"
+  },
+  {
+    "type": "屋内バイク",
+    "date": "2026-08-04",
+    "dist": 12.4,
+    "time": 25.02,
+    "avgHR": 129,
+    "maxHR": 149,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "屋内バイク"
+  },
+  {
+    "type": "プールスイム",
+    "date": "2026-08-04",
+    "dist": 1.0,
+    "time": 31.77,
+    "avgHR": 113,
+    "maxHR": 131,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "プールスイム"
+  },
+  {
+    "type": "仓想サイクリング",
+    "date": "2026-08-04",
+    "dist": 11.771,
+    "time": 30.1,
+    "avgHR": 144,
+    "maxHR": 170,
+    "np": 175,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Mount Charlton 仮想サイクリング"
+  },
+  {
+    "type": "ラン",
+    "date": "2026-08-03",
+    "dist": 5.263,
+    "time": 33.68,
+    "avgHR": 126,
+    "maxHR": 148,
+    "np": 265,
+    "tss": 0.0,
+    "p20": null,
+    "name": "諏訪市 ラン"
+  },
+  {
+    "type": "筋力トレーニング",
+    "date": "2026-08-03",
+    "dist": 0.0,
+    "time": 5.03,
+    "avgHR": 116,
+    "maxHR": 157,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "筋トレ"
+  },
+  {
+    "type": "プールスイム",
+    "date": "2026-08-01",
+    "dist": 0.85,
+    "time": 59.36,
+    "avgHR": 106,
+    "maxHR": 151,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "プールスイム"
+  },
+  {
+    "type": "筋力トレーニング",
+    "date": "2026-07-31",
+    "dist": 0.0,
+    "time": 19.09,
+    "avgHR": 90,
+    "maxHR": 134,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "筋トレ"
+  },
+  {
+    "type": "プールスイム",
+    "date": "2026-07-31",
+    "dist": 0.5,
+    "time": 13.01,
+    "avgHR": 109,
+    "maxHR": 130,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "プールスイム"
+  },
+  {
     "type": "仓想サイクリング",
     "date": "2026-07-30",
     "dist": 10.062,
@@ -744,7 +864,7 @@
     "name": "屋外スイム"
   },
   {
-    "type": "mountain_biking",
+    "type": "マウンテンバイク",
     "date": "2026-07-04",
     "dist": 0.619,
     "time": 4.58,
@@ -1104,7 +1224,7 @@
     "name": "南丹市 仮想サイクリング"
   },
   {
-    "type": "mountain_biking",
+    "type": "マウンテンバイク",
     "date": "2026-06-21",
     "dist": 6.914,
     "time": 29.92,
@@ -2448,7 +2568,7 @@
     "name": "山中湖村 - 富士五湖·富士山一周ライド"
   },
   {
-    "type": "jump_rope",
+    "type": "なわとび",
     "date": "2026-05-03",
     "dist": 0.0,
     "time": 3.42,
@@ -3456,7 +3576,7 @@
     "name": "Fujimi Panorama Resort スキー"
   },
   {
-    "type": "jump_rope",
+    "type": "なわとび",
     "date": "2026-03-21",
     "dist": 0.0,
     "time": 7.69,
@@ -3636,7 +3756,7 @@
     "name": "Fujimi Panorama Resort スキー"
   },
   {
-    "type": "jump_rope",
+    "type": "なわとび",
     "date": "2026-03-15",
     "dist": 0.0,
     "time": 6.32,
@@ -3886,161 +4006,5 @@
     "tss": 0.0,
     "p20": null,
     "name": "小山町 仮想サイクリング"
-  },
-  {
-    "type": "筋力トレーニング",
-    "date": "2026-03-06",
-    "dist": 0.0,
-    "time": 19.01,
-    "avgHR": 126,
-    "maxHR": 153,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "筋トレ"
-  },
-  {
-    "type": "トレッドミル",
-    "date": "2026-03-06",
-    "dist": 6.0,
-    "time": 31.46,
-    "avgHR": 156,
-    "maxHR": 181,
-    "np": 270,
-    "tss": 0.0,
-    "p20": null,
-    "name": "I走　27分"
-  },
-  {
-    "type": "屋内バイク",
-    "date": "2026-03-06",
-    "dist": 0.0,
-    "time": 15.1,
-    "avgHR": 138,
-    "maxHR": 156,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "屋内バイク"
-  },
-  {
-    "type": "プールスイム",
-    "date": "2026-03-06",
-    "dist": 0.55,
-    "time": 15.98,
-    "avgHR": 132,
-    "maxHR": 155,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "プールスイム"
-  },
-  {
-    "type": "仓想サイクリング",
-    "date": "2026-03-06",
-    "dist": 13.983,
-    "time": 38.02,
-    "avgHR": 118,
-    "maxHR": 148,
-    "np": 139,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Al Gharbia 仮想サイクリング"
-  },
-  {
-    "type": "筋力トレーニング",
-    "date": "2026-03-05",
-    "dist": 0.0,
-    "time": 18.7,
-    "avgHR": 83,
-    "maxHR": 129,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "筋トレ"
-  },
-  {
-    "type": "仓想サイクリング",
-    "date": "2026-03-05",
-    "dist": 9.617,
-    "time": 25.1,
-    "avgHR": 123,
-    "maxHR": 153,
-    "np": 156,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Al Gharbia 仮想サイクリング"
-  },
-  {
-    "type": "筋力トレーニング",
-    "date": "2026-03-04",
-    "dist": 0.0,
-    "time": 10.37,
-    "avgHR": 130,
-    "maxHR": 153,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "筋トレ"
-  },
-  {
-    "type": "トレッドミル",
-    "date": "2026-03-04",
-    "dist": 6.09,
-    "time": 33.43,
-    "avgHR": 150,
-    "maxHR": 175,
-    "np": 252,
-    "tss": 0.0,
-    "p20": null,
-    "name": "トレッドミル"
-  },
-  {
-    "type": "筋力トレーニング",
-    "date": "2026-03-04",
-    "dist": 0.0,
-    "time": 7.66,
-    "avgHR": 118,
-    "maxHR": 135,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "筋トレ"
-  },
-  {
-    "type": "屋内バイク",
-    "date": "2026-03-04",
-    "dist": 0.0,
-    "time": 15.18,
-    "avgHR": 127,
-    "maxHR": 147,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "屋内バイク"
-  },
-  {
-    "type": "プールスイム",
-    "date": "2026-03-04",
-    "dist": 1.275,
-    "time": 31.44,
-    "avgHR": 132,
-    "maxHR": 162,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "プールスイム"
-  },
-  {
-    "type": "仓想サイクリング",
-    "date": "2026-03-04",
-    "dist": 8.947,
-    "time": 30.1,
-    "avgHR": 115,
-    "maxHR": 153,
-    "np": 147,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Zipaquirá 仮想サイクリング"
   }
 ]
