@@ -979,6 +979,21 @@ function icuToActivity(a) {
   };
 }
 
+// fetch_garmin.py already writes activities.json in the app's native
+// shape ({type,date,dist,time,avgHR,...}); fetch-intervals.yml writes the
+// raw Intervals.icu API shape ({start_date_local,moving_time,...}) to the
+// same file. Detect which one we got instead of assuming ICU's shape.
+function normalizeActivity(a) {
+  if (a && typeof a.date === 'string' && a.time !== undefined) {
+    return {
+      type: a.type || 'その他', date: a.date, dist: a.dist || 0, time: a.time || 0,
+      avgHR: a.avgHR || null, maxHR: a.maxHR || null, np: a.np || null,
+      tss: a.tss || 0, p20: a.p20 || null, name: a.name || ''
+    };
+  }
+  return icuToActivity(a);
+}
+
 function activityKey(a) {
   return a.date + '|' + a.type + '|' + Math.round(a.time);
 }
@@ -997,7 +1012,7 @@ function mergeActivities(existing, incoming) {
 }
 
 async function loadIntervalsJson() {
-  showScreen('oauth', 'Intervals.icuからデータ読み込み中...');
+  showScreen('oauth', 'データ読み込み中...');
   try {
     var res = await fetch('https://raw.githubusercontent.com/chichoudoufu/training-readiness/main/activities.json?t=' + Date.now());
     if (!res.ok) {
@@ -1009,13 +1024,13 @@ async function loadIntervalsJson() {
       alert('activities.json is empty. Run GitHub Actions.');
       showScreen('connect'); return;
     }
-    var activities = data.map(icuToActivity).filter(function(a){ return a && a.time > 0; });
+    var activities = data.map(normalizeActivity).filter(function(a){ return a && a.date && a.time > 0; });
     var existing = [];
     try { var r2 = localStorage.getItem('saved_activities'); if (r2) existing = JSON.parse(r2).activities || []; } catch(e2) {}
     var mm = mergeActivities(existing, activities);
-    var snap = { activities: mm.merged, label: 'Intervals.icu', savedAt: new Date().toISOString(), count: mm.merged.length };
+    var snap = { activities: mm.merged, label: 'Garmin', savedAt: new Date().toISOString(), count: mm.merged.length };
     try { localStorage.setItem('saved_activities', JSON.stringify(snap)); checkSavedData(); } catch(e3) {}
-    renderDashboard(mm.merged, 'Intervals.icu - ' + mm.merged.length + ' activities');
+    renderDashboard(mm.merged, 'Garmin - ' + mm.merged.length + ' activities');
   } catch(e) {
     alert('Error: ' + e.message);
     showScreen('connect');
