@@ -1026,13 +1026,18 @@ async function loadIntervalsJson() {
       alert('activities.json is empty. Run GitHub Actions.');
       showScreen('connect'); return;
     }
-    var activities = data.map(normalizeActivity).filter(function(a){ return a && a.date && a.time > 0; });
-    var existing = [];
-    try { var r2 = localStorage.getItem('saved_activities'); if (r2) existing = JSON.parse(r2).activities || []; } catch(e2) {}
-    var mm = mergeActivities(existing, activities);
-    var snap = { activities: mm.merged, label: 'Garmin', savedAt: new Date().toISOString(), count: mm.merged.length };
+    // activities.json is already the full, authoritative dataset (fetch_garmin.py
+    // rewrites it in full each run) -- replace the local cache with it instead of
+    // merging with whatever was there before. Merging only ever added entries and
+    // never dropped stale ones, so the local snapshot grew unboundedly and drifted
+    // out of sync between devices (each device accumulated its own history).
+    var activities = data.map(normalizeActivity)
+      .filter(function(a){ return a && a.date && a.time > 0; })
+      .map(function(a){ return Object.assign({}, a, { source: 'garmin' }); })
+      .sort(function(a,b){ return b.date.localeCompare(a.date); });
+    var snap = { activities: activities, label: 'Garmin', savedAt: new Date().toISOString(), count: activities.length };
     try { localStorage.setItem('saved_activities', JSON.stringify(snap)); checkSavedData(); } catch(e3) {}
-    renderDashboard(mm.merged, 'Garmin - ' + mm.merged.length + ' activities');
+    renderDashboard(activities, 'Garmin - ' + activities.length + ' activities');
   } catch(e) {
     alert('Error: ' + e.message);
     showScreen('connect');
