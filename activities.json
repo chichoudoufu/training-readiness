@@ -1,6 +1,30 @@
 [
   {
     "type": "筋力トレーニング",
+    "date": "2026-08-05",
+    "dist": 0.0,
+    "time": 7.15,
+    "avgHR": 114,
+    "maxHR": 153,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "筋トレ"
+  },
+  {
+    "type": "仓想サイクリング",
+    "date": "2026-08-05",
+    "dist": 13.755,
+    "time": 30.9,
+    "avgHR": 122,
+    "maxHR": 155,
+    "np": 146,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Le Cormier 仮想サイクリング"
+  },
+  {
+    "type": "筋力トレーニング",
     "date": "2026-08-04",
     "dist": 0.0,
     "time": 17.96,
@@ -3970,41 +3994,5 @@
     "tss": 0.0,
     "p20": null,
     "name": "仮想サイクリング"
-  },
-  {
-    "type": "ロードサイクリング",
-    "date": "2026-03-07",
-    "dist": 1.829,
-    "time": 7.09,
-    "avgHR": 115,
-    "maxHR": 147,
-    "np": 97,
-    "tss": 3.0,
-    "p20": null,
-    "name": "諏訪市 バイク"
-  },
-  {
-    "type": "resort_skiing",
-    "date": "2026-03-07",
-    "dist": 31.784,
-    "time": 278.28,
-    "avgHR": 95,
-    "maxHR": 181,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Fujimi Panorama Resort スキー"
-  },
-  {
-    "type": "仓想サイクリング",
-    "date": "2026-03-07",
-    "dist": 6.251,
-    "time": 30.58,
-    "avgHR": 130,
-    "maxHR": 159,
-    "np": 141,
-    "tss": 0.0,
-    "p20": null,
-    "name": "小山町 仮想サイクリング"
   }
 ]
