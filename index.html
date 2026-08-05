@@ -985,7 +985,7 @@ function mergeActivities(existing, incoming) {
 async function loadIntervalsJson() {
   showScreen('oauth', 'Intervals.icuからデータ読み込み中...');
   try {
-    var res = await fetch('./activities.json?t=' + Date.now());
+    var res = await fetch('https://raw.githubusercontent.com/chichoudoufu/training-readiness/main/activities.json?t=' + Date.now());
     if (!res.ok) {
       alert('activities.json not found. Run GitHub Actions first.');
       showScreen('connect'); return;
