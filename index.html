@@ -880,6 +880,20 @@ async function fetchGarminNow() {
 
   showScreen('oauth', 'Garminデータを取得中（約30秒）...');
 
+  // Record the most recent run BEFORE dispatching, so we can tell it apart
+  // from the run this click is about to create (avoids treating an old,
+  // already-completed run as the result of this click).
+  var beforeId = null;
+  try {
+    var beforeRes = await fetch(
+      'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/' + WORKFLOW + '/runs?per_page=1',
+      { headers: headers }
+    );
+    var beforeJson = await beforeRes.json();
+    var beforeLatest = beforeJson.workflow_runs && beforeJson.workflow_runs[0];
+    beforeId = beforeLatest ? beforeLatest.id : null;
+  } catch(e) {}
+
   // Trigger workflow
   var triggerRes = await fetch(
     'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/' + WORKFLOW + '/dispatches',
@@ -897,23 +911,23 @@ async function fetchGarminNow() {
     showScreen('connect'); return;
   }
 
-  // Wait for completion (poll every 5s, max 90s)
-  await new Promise(function(r){ setTimeout(r, 6000); });
+  // Wait for a NEW run (id different from beforeId) to appear and complete
+  // (poll every 5s, max 2 minutes)
   var done = false;
   var success = false;
-  for (var i = 0; i < 16; i++) {
+  for (var i = 0; i < 24; i++) {
+    await new Promise(function(r){ setTimeout(r, 5000); });
     var runsRes = await fetch(
-      'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/' + WORKFLOW + '/runs?per_page=1',
+      'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/' + WORKFLOW + '/runs?per_page=5',
       { headers: headers }
     );
-    var runs = await runsRes.json();
-    var latest = runs.workflow_runs && runs.workflow_runs[0];
-    if (latest && latest.status === 'completed') {
+    var runsJson = await runsRes.json();
+    var newRun = (runsJson.workflow_runs || []).find(function(w){ return w.id !== beforeId; });
+    if (newRun && newRun.status === 'completed') {
       done = true;
-      success = latest.conclusion === 'success';
+      success = newRun.conclusion === 'success';
       break;
     }
-    await new Promise(function(r){ setTimeout(r, 5000); });
   }
 
   if (!done || !success) {
