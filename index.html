@@ -138,6 +138,8 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
     <h1>トレーニング分析</h1>
     <p>StravaまたはGarminのデータを接続して<br>PMC・VO2max・FTPの推移を分析します</p>
     <div class="connect-btns">
+      <button class="btn-primary" onclick="loadIntervalsJson()">📊 最新データを見る</button>
+      <div class="divider-or">または</div>
       <button class="btn-strava" onclick="startStravaAuth()">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 2 12.872h4.168"/></svg>
         Stravaで接続
