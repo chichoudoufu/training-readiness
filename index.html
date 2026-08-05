@@ -148,7 +148,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
         📁 GarminのCSVファイルを読み込む
       </label>
       <div class="divider-or">または</div>
-      <button class="btn-upload" onclick="loadIntervalsJson()" style="background:var(--bg3)">⚡ Intervals.icu (自動更新)</button>
+      <button class="btn-upload" onclick="fetchGarminNow()" style="background:var(--bg3)">⚡ Garminデータを今すぐ更新</button>
       <div class="divider-or" id="div-saved" style="display:none">または</div>
       <button class="btn-saved" id="btn-saved" onclick="loadSavedData()" style="display:none">💾 保存済みデータを表示</button>
     </div>
@@ -856,6 +856,75 @@ window.renderDashboard = function(activities, sourceLabel) {
 // ─────────────────────────────────────────────
 // DISCONNECT
 // ─────────────────────────────────────────────
+function getGithubPAT() {
+  var pat = localStorage.getItem('gh_pat');
+  if (!pat) {
+    pat = prompt('GitHub Personal Access Token\n(github.com/settings/tokens?type=beta\nActions: Read and write)');
+    if (pat) localStorage.setItem('gh_pat', pat.trim());
+  }
+  return pat ? pat.trim() : null;
+}
+
+async function fetchGarminNow() {
+  var pat = getGithubPAT();
+  if (!pat) return;
+
+  var OWNER = 'chichoudoufu';
+  var REPO = 'training-readiness';
+  var WORKFLOW = 'fetch-garmin.yml';
+  var headers = {
+    'Authorization': 'Bearer ' + pat,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+
+  showScreen('oauth', 'Garminデータを取得中（約30秒）...');
+
+  // Trigger workflow
+  var triggerRes = await fetch(
+    'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/' + WORKFLOW + '/dispatches',
+    { method: 'POST', headers: headers, body: JSON.stringify({ ref: 'main' }) }
+  );
+
+  if (!triggerRes.ok) {
+    if (triggerRes.status === 401 || triggerRes.status === 403) {
+      localStorage.removeItem('gh_pat');
+      alert('PATが無効です。再入力してください。');
+    } else {
+      var err = await triggerRes.text();
+      alert('ワークフロー起動失敗 (' + triggerRes.status + '): ' + err.slice(0,100));
+    }
+    showScreen('connect'); return;
+  }
+
+  // Wait for completion (poll every 5s, max 90s)
+  await new Promise(function(r){ setTimeout(r, 6000); });
+  var done = false;
+  var success = false;
+  for (var i = 0; i < 16; i++) {
+    var runsRes = await fetch(
+      'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/' + WORKFLOW + '/runs?per_page=1',
+      { headers: headers }
+    );
+    var runs = await runsRes.json();
+    var latest = runs.workflow_runs && runs.workflow_runs[0];
+    if (latest && latest.status === 'completed') {
+      done = true;
+      success = latest.conclusion === 'success';
+      break;
+    }
+    await new Promise(function(r){ setTimeout(r, 5000); });
+  }
+
+  if (!done || !success) {
+    alert('取得タイムアウトまたは失敗。しばらくして「保存済みデータを表示」を押してください。');
+    showScreen('connect'); return;
+  }
+
+  // Load the updated activities.json
+  await loadIntervalsJson();
+}
+
 function disconnect() {
   localStorage.removeItem('strava_token');
   localStorage.removeItem('strava_athlete');
