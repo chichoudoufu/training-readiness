@@ -138,9 +138,9 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
     <h1>トレーニング分析</h1>
     <p>StravaまたはGarminのデータを接続して<br>PMC・VO2max・FTPの推移を分析します</p>
     <div class="connect-btns">
-      <button class="btn-strava" onclick="fetchStravaNow()">
+      <button class="btn-strava" onclick="startStravaAuth()">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 2 12.872h4.168"/></svg>
-        ⚡ Stravaデータを今すぐ更新
+        Stravaで接続
       </button>
       <div class="divider-or">または</div>
       <label class="btn-upload">
@@ -203,44 +203,127 @@ function showScreen(name, msg) {
   });
 }
 // ─────────────────────────────────────────────
-// STRAVA (via GitHub Actions, same pattern as Garmin)
+// STRAVA OAUTH (via Netlify Function)
 // ─────────────────────────────────────────────
-async function fetchStravaNow() {
-  showScreen('oauth', 'Stravaデータを取得中（約30秒）...');
-  var ok = await triggerWorkflowAndWait('fetch-strava.yml');
-  if (!ok) {
-    alert('取得タイムアウトまたは失敗。しばらくして「保存済みデータを表示」を押してください。');
-    showScreen('connect'); return;
-  }
-  await loadStravaJson();
+const STRAVA_CLIENT_ID = '244519';
+const REDIRECT_URI = 'https://tiny-crepe-fb6027.netlify.app';
+
+async function startStravaAuth() {
+  const params = new URLSearchParams({
+    client_id: STRAVA_CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    response_type: 'code',
+    scope: 'read,activity:read_all',
+    approval_prompt: 'force'
+  });
+  window.location.href = 'https://www.strava.com/oauth/authorize?' + params.toString();
 }
 
-async function loadStravaJson() {
-  showScreen('oauth', 'データ読み込み中...');
+async function handleOAuthCallback(code) {
+  showScreen('oauth');
   try {
-    var res = await fetch('https://raw.githubusercontent.com/chichoudoufu/training-readiness/main/strava_activities.json?t=' + Date.now());
-    if (!res.ok) {
-      alert('strava_activities.json not found. Run GitHub Actions first.');
-      showScreen('connect'); return;
+    const res = await fetch('/.netlify/functions/strava-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, grant_type: 'authorization_code' })
+    });
+    const data = await res.json();
+    if (data.access_token) {
+      localStorage.setItem('strava_token', data.access_token);
+      localStorage.setItem('strava_refresh_token', data.refresh_token || '');
+      localStorage.setItem('strava_token_expiry', data.expires_at || 0);
+      localStorage.setItem('strava_athlete', JSON.stringify(data.athlete));
+      window.history.replaceState({}, '', window.location.pathname);
+      await loadStravaData(data.access_token);
+    } else {
+      alert('認証失敗: ' + (data.message || JSON.stringify(data)));
+      showScreen('connect');
     }
-    var data = await res.json();
-    if (!Array.isArray(data) || data.length === 0) {
-      alert('strava_activities.json is empty. Run GitHub Actions.');
-      showScreen('connect'); return;
-    }
-    var activities = data.map(normalizeActivity)
-      .filter(function(a){ return a && a.date && a.time > 0; })
-      .map(function(a){ return Object.assign({}, a, { source: 'strava' }); });
-    var existing = [];
-    try { var r2 = localStorage.getItem('saved_activities'); if (r2) existing = JSON.parse(r2).activities || []; } catch(e2) {}
-    var mm = mergeActivities(existing, activities);
-    var snap = { activities: mm.merged, label: 'Strava', savedAt: new Date().toISOString(), count: mm.merged.length };
-    try { localStorage.setItem('saved_activities', JSON.stringify(snap)); checkSavedData(); } catch(e3) {}
-    renderDashboard(mm.merged, 'Strava - ' + mm.merged.length + ' activities' + (mm.deduped ? ' (' + mm.deduped + ' 件はGarminと重複のため除外)' : ''));
   } catch(e) {
-    alert('Error: ' + e.message);
+    alert('接続エラー: ' + e.message);
     showScreen('connect');
   }
+}
+
+async function getValidToken() {
+  const token = localStorage.getItem('strava_token');
+  const expiry = parseInt(localStorage.getItem('strava_token_expiry') || '0');
+  const refresh = localStorage.getItem('strava_refresh_token');
+  if (Date.now() / 1000 < expiry - 300) return token;
+  if (!refresh) return null;
+  try {
+    const res = await fetch('/.netlify/functions/strava-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ grant_type: 'refresh_token', refresh_token: refresh })
+    });
+    const data = await res.json();
+    if (data.access_token) {
+      localStorage.setItem('strava_token', data.access_token);
+      localStorage.setItem('strava_token_expiry', data.expires_at || 0);
+      localStorage.setItem('strava_refresh_token', data.refresh_token || refresh);
+      return data.access_token;
+    }
+    // リフレッシュ失敗時はトークンをクリア
+    localStorage.removeItem('strava_token');
+    localStorage.removeItem('strava_refresh_token');
+    localStorage.removeItem('strava_token_expiry');
+  } catch(e) {}
+  return null;
+}
+
+async function loadStravaData(token) {
+  showScreen('oauth');
+  const validToken = token || await getValidToken();
+  if (!validToken) { showScreen('connect'); return; }
+  const days = 120;
+  const after = Math.floor((Date.now() / 1000) - days * 86400);
+  let activities = [];
+  let page = 1;
+  try {
+    while (true) {
+      const res = await fetch(`https://www.strava.com/api/v3/athlete/activities?after=${after}&per_page=100&page=${page}`, {
+        headers: { 'Authorization': 'Bearer ' + validToken }
+      });
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('strava_token');
+          localStorage.removeItem('strava_refresh_token');
+          localStorage.removeItem('strava_token_expiry');
+          showScreen('connect');
+          return;
+        }
+        break;
+      }
+      const batch = await res.json();
+      if (!Array.isArray(batch) || batch.length === 0) break;
+      activities = activities.concat(batch);
+      if (batch.length < 100) break;
+      page++;
+    }
+  } catch(e) {
+    console.error('Strava fetch error:', e);
+  }
+  const normalized = activities.map(a => ({
+    type: stravaTypeToJa(a.type),
+    date: a.start_date_local.slice(0, 10),
+    dist: a.distance / 1000,
+    time: a.moving_time / 60,
+    avgHR: a.average_heartrate || null,
+    maxHR: a.max_heartrate || null,
+    np: a.weighted_average_watts || null,
+    avgPow: a.average_watts || null,
+    tss: 0,
+    p20: null,
+    name: a.name
+  }));
+  const athlete = JSON.parse(localStorage.getItem('strava_athlete') || '{}');
+  renderDashboard(normalized, 'Strava: ' + (athlete.firstname || '') + ' ' + (athlete.lastname || '').trim());
+}
+
+function stravaTypeToJa(t) {
+  const map = { Run:'ラン', VirtualRun:'ラン', TrailRun:'ラン', Treadmill:'トレッドミル', Ride:'ロードサイクリング', VirtualRide:'仮想サイクリング', Swim:'プールスイム', Walk:'ウォーク', Workout:'筋力トレーニング', WeightTraining:'筋力トレーニング' };
+  return map[t] || t;
 }
 
 // ─────────────────────────────────────────────
@@ -252,7 +335,7 @@ function handleFileUpload(event) {
   var reader = new FileReader();
   reader.onload = function(e) {
     var text = e.target.result;
-    var incoming = parseGarminCSV(text).map(function(a){ return Object.assign({}, a, { source: 'garmin' }); });
+    var incoming = parseGarminCSV(text);
     if (incoming.length === 0) {
       alert('No activities found in CSV. Check file format.');
       return;
@@ -782,28 +865,30 @@ function getGithubPAT() {
   return pat ? pat.trim() : null;
 }
 
-// Trigger a GitHub Actions workflow via the API and wait for the run IT
-// created (not some earlier run) to finish. Returns true on success, false
-// on failure/timeout. Shared by the Garmin and Strava "update now" buttons.
-async function triggerWorkflowAndWait(workflowFile) {
+async function fetchGarminNow() {
   var pat = getGithubPAT();
-  if (!pat) return false;
+  if (!pat) return;
 
   var OWNER = 'chichoudoufu';
   var REPO = 'training-readiness';
+  var WORKFLOW = 'fetch-garmin.yml';
   var headers = {
     'Authorization': 'Bearer ' + pat,
     'Accept': 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28'
   };
-  var runsUrl = 'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/' + workflowFile + '/runs';
+
+  showScreen('oauth', 'Garminデータを取得中（約30秒）...');
 
   // Record the most recent run BEFORE dispatching, so we can tell it apart
   // from the run this click is about to create (avoids treating an old,
   // already-completed run as the result of this click).
   var beforeId = null;
   try {
-    var beforeRes = await fetch(runsUrl + '?per_page=1', { headers: headers });
+    var beforeRes = await fetch(
+      'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/' + WORKFLOW + '/runs?per_page=1',
+      { headers: headers }
+    );
     var beforeJson = await beforeRes.json();
     var beforeLatest = beforeJson.workflow_runs && beforeJson.workflow_runs[0];
     beforeId = beforeLatest ? beforeLatest.id : null;
@@ -811,7 +896,7 @@ async function triggerWorkflowAndWait(workflowFile) {
 
   // Trigger workflow
   var triggerRes = await fetch(
-    'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/' + workflowFile + '/dispatches',
+    'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/' + WORKFLOW + '/dispatches',
     { method: 'POST', headers: headers, body: JSON.stringify({ ref: 'main' }) }
   );
 
@@ -823,34 +908,40 @@ async function triggerWorkflowAndWait(workflowFile) {
       var err = await triggerRes.text();
       alert('ワークフロー起動失敗 (' + triggerRes.status + '): ' + err.slice(0,100));
     }
-    return false;
+    showScreen('connect'); return;
   }
 
   // Wait for a NEW run (id different from beforeId) to appear and complete
   // (poll every 5s, max 2 minutes)
+  var done = false;
+  var success = false;
   for (var i = 0; i < 24; i++) {
     await new Promise(function(r){ setTimeout(r, 5000); });
-    var runsRes = await fetch(runsUrl + '?per_page=5', { headers: headers });
+    var runsRes = await fetch(
+      'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/' + WORKFLOW + '/runs?per_page=5',
+      { headers: headers }
+    );
     var runsJson = await runsRes.json();
     var newRun = (runsJson.workflow_runs || []).find(function(w){ return w.id !== beforeId; });
     if (newRun && newRun.status === 'completed') {
-      return newRun.conclusion === 'success';
+      done = true;
+      success = newRun.conclusion === 'success';
+      break;
     }
   }
-  return false;
-}
 
-async function fetchGarminNow() {
-  showScreen('oauth', 'Garminデータを取得中（約30秒）...');
-  var ok = await triggerWorkflowAndWait('fetch-garmin.yml');
-  if (!ok) {
+  if (!done || !success) {
     alert('取得タイムアウトまたは失敗。しばらくして「保存済みデータを表示」を押してください。');
     showScreen('connect'); return;
   }
+
+  // Load the updated activities.json
   await loadIntervalsJson();
 }
 
 function disconnect() {
+  localStorage.removeItem('strava_token');
+  localStorage.removeItem('strava_athlete');
   destroyCharts();
   showScreen('connect');
 }
@@ -907,18 +998,6 @@ function activityKey(a) {
   return a.date + '|' + a.type + '|' + Math.round(a.time);
 }
 
-// Coarse category used only for cross-source duplicate detection (Garmin's
-// and Strava's type labels for the same workout don't always match).
-function activityBucket(type) {
-  type = type || '';
-  if (type.includes('ラン') || type.includes('トレッドミル')) return 'run';
-  if (type.includes('バイク') || type.includes('サイクリング')) return 'bike';
-  if (type.includes('スイム')) return 'swim';
-  if (type.includes('筋力')) return 'strength';
-  if (type.includes('ウォーク')) return 'walk';
-  return 'other';
-}
-
 function mergeActivities(existing, incoming) {
   var map = {};
   existing.forEach(function(a) { map[activityKey(a)] = a; });
@@ -928,26 +1007,8 @@ function mergeActivities(existing, incoming) {
     if (!map[k]) { map[k] = a; added++; }
     else if ((a.tss > 0 && !map[k].tss) || (a.avgHR && !map[k].avgHR)) { map[k] = a; updated++; }
   });
-  var list = Object.values(map);
-
-  // Garmin always wins over Strava for the same real-world workout: drop
-  // any non-Garmin entry that matches a Garmin entry on date + broad
-  // category + duration within 8 minutes, so a workout auto-synced to both
-  // services doesn't get counted twice in the PMC/TSS totals.
-  var garminEntries = list.filter(function(e){ return e.source === 'garmin'; });
-  var deduped = 0;
-  list = list.filter(function(a) {
-    if (a.source === 'garmin') return true;
-    var isDup = garminEntries.some(function(g) {
-      return g.date === a.date && activityBucket(g.type) === activityBucket(a.type) &&
-             Math.abs(g.time - a.time) <= 8;
-    });
-    if (isDup) { deduped++; return false; }
-    return true;
-  });
-
-  var merged = list.sort(function(a,b){ return b.date.localeCompare(a.date); });
-  return { merged: merged, added: added, updated: updated, deduped: deduped };
+  var merged = Object.values(map).sort(function(a,b){ return b.date.localeCompare(a.date); });
+  return { merged: merged, added: added, updated: updated };
 }
 
 async function loadIntervalsJson() {
@@ -963,9 +1024,7 @@ async function loadIntervalsJson() {
       alert('activities.json is empty. Run GitHub Actions.');
       showScreen('connect'); return;
     }
-    var activities = data.map(normalizeActivity)
-      .filter(function(a){ return a && a.date && a.time > 0; })
-      .map(function(a){ return Object.assign({}, a, { source: 'garmin' }); });
+    var activities = data.map(normalizeActivity).filter(function(a){ return a && a.date && a.time > 0; });
     var existing = [];
     try { var r2 = localStorage.getItem('saved_activities'); if (r2) existing = JSON.parse(r2).activities || []; } catch(e2) {}
     var mm = mergeActivities(existing, activities);
@@ -1021,7 +1080,14 @@ function checkSavedData() {
 
 window.addEventListener('DOMContentLoaded', async () => {
   checkSavedData();
-  showScreen('connect');
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+
+  if (code) {
+    await handleOAuthCallback(code);
+  } else {
+    showScreen('connect');
+  }
 });
 </script>
 </body>
