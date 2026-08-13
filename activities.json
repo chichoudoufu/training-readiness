@@ -1,5 +1,17 @@
 [
   {
+    "type": "なわとび",
+    "date": "2026-08-13",
+    "dist": 0.0,
+    "time": 8.23,
+    "avgHR": 123,
+    "maxHR": 162,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "なわとび"
+  },
+  {
     "type": "ラン",
     "date": "2026-08-12",
     "dist": 5.215,
@@ -3970,29 +3982,5 @@
     "tss": 0.0,
     "p20": null,
     "name": "Santa Clara County 仮想サイクリング"
-  },
-  {
-    "type": "resort_skiing",
-    "date": "2026-03-15",
-    "dist": 22.276,
-    "time": 178.58,
-    "avgHR": 94,
-    "maxHR": 160,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Fujimi Panorama Resort スキー"
-  },
-  {
-    "type": "なわとび",
-    "date": "2026-03-15",
-    "dist": 0.0,
-    "time": 6.32,
-    "avgHR": 125,
-    "maxHR": 141,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "なわとび"
   }
 ]
