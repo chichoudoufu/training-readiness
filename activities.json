@@ -1,5 +1,77 @@
 [
   {
+    "type": "筋力トレーニング",
+    "date": "2026-08-19",
+    "dist": 0.0,
+    "time": 14.29,
+    "avgHR": 103,
+    "maxHR": 154,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "筋トレ"
+  },
+  {
+    "type": "トレッドミル",
+    "date": "2026-08-19",
+    "dist": 3.007,
+    "time": 20.02,
+    "avgHR": 122,
+    "maxHR": 130,
+    "np": 221,
+    "tss": 0.0,
+    "p20": null,
+    "name": "トレッドミル"
+  },
+  {
+    "type": "屋内バイク",
+    "date": "2026-08-19",
+    "dist": 0.0,
+    "time": 38.65,
+    "avgHR": 136,
+    "maxHR": 157,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "屋内バイク"
+  },
+  {
+    "type": "プールスイム",
+    "date": "2026-08-19",
+    "dist": 0.9,
+    "time": 24.88,
+    "avgHR": 115,
+    "maxHR": 140,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "プールスイム"
+  },
+  {
+    "type": "筋力トレーニング",
+    "date": "2026-08-19",
+    "dist": 0.0,
+    "time": 6.3,
+    "avgHR": 125,
+    "maxHR": 159,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "筋トレ"
+  },
+  {
+    "type": "仓想サイクリング",
+    "date": "2026-08-19",
+    "dist": 9.885,
+    "time": 33.12,
+    "avgHR": 127,
+    "maxHR": 148,
+    "np": 123,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Bogota, D.C. 仮想サイクリング"
+  },
+  {
     "type": "ロードサイクリング",
     "date": "2026-08-18",
     "dist": 6.32,
@@ -3922,29 +3994,5 @@
     "tss": 0.0,
     "p20": null,
     "name": "Fujimi Panorama Resort スキー"
-  },
-  {
-    "type": "resort_skiing",
-    "date": "2026-03-21",
-    "dist": 22.012,
-    "time": 358.07,
-    "avgHR": 112,
-    "maxHR": 180,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Fujimi Panorama Resort スキー"
-  },
-  {
-    "type": "なわとび",
-    "date": "2026-03-21",
-    "dist": 0.0,
-    "time": 7.69,
-    "avgHR": 120,
-    "maxHR": 144,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "なわとび"
   }
 ]
