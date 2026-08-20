@@ -1,5 +1,41 @@
 [
   {
+    "type": "ラン",
+    "date": "2026-08-20",
+    "dist": 5.302,
+    "time": 32.79,
+    "avgHR": 136,
+    "maxHR": 172,
+    "np": 273,
+    "tss": 0.0,
+    "p20": null,
+    "name": "諏訪市 ラン"
+  },
+  {
+    "type": "筋力トレーニング",
+    "date": "2026-08-20",
+    "dist": 0.0,
+    "time": 6.3,
+    "avgHR": 138,
+    "maxHR": 158,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "筋トレ"
+  },
+  {
+    "type": "仓想サイクリング",
+    "date": "2026-08-20",
+    "dist": 14.623,
+    "time": 30.45,
+    "avgHR": 138,
+    "maxHR": 172,
+    "np": 168,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Abu Dhabi 仮想サイクリング"
+  },
+  {
     "type": "筋力トレーニング",
     "date": "2026-08-19",
     "dist": 0.0,
@@ -3970,29 +4006,5 @@
     "tss": 0.0,
     "p20": null,
     "name": "諏訪市 ラン"
-  },
-  {
-    "type": "ロードサイクリング",
-    "date": "2026-03-22",
-    "dist": 15.93,
-    "time": 33.1,
-    "avgHR": 127,
-    "maxHR": 160,
-    "np": 160,
-    "tss": 43.0,
-    "p20": null,
-    "name": "諏訪市 ロードサイクリング"
-  },
-  {
-    "type": "resort_skiing",
-    "date": "2026-03-22",
-    "dist": 25.718,
-    "time": 217.02,
-    "avgHR": 98,
-    "maxHR": 154,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Fujimi Panorama Resort スキー"
   }
 ]
