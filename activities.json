@@ -1,5 +1,41 @@
 [
   {
+    "type": "golf",
+    "date": "2026-08-23",
+    "dist": 5.644,
+    "time": 165.04,
+    "avgHR": 97,
+    "maxHR": 128,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "塩尻市 ゴルフ"
+  },
+  {
+    "type": "golf",
+    "date": "2026-08-23",
+    "dist": 5.958,
+    "time": 165.93,
+    "avgHR": 92,
+    "maxHR": 127,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "塩尻市 ゴルフ"
+  },
+  {
+    "type": "ウォーク",
+    "date": "2026-08-23",
+    "dist": 2.437,
+    "time": 28.67,
+    "avgHR": 84,
+    "maxHR": 98,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "諏訪市 ウォーク"
+  },
+  {
     "type": "trail_running",
     "date": "2026-08-22",
     "dist": 22.803,
@@ -3934,29 +3970,5 @@
     "tss": 0.0,
     "p20": null,
     "name": "Zurich 仮想サイクリング"
-  },
-  {
-    "type": "仓想サイクリング",
-    "date": "2026-03-25",
-    "dist": 6.568,
-    "time": 13.8,
-    "avgHR": 105,
-    "maxHR": 140,
-    "np": 128,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Calaveras County 仮想サイクリング"
-  },
-  {
-    "type": "ラン",
-    "date": "2026-03-25",
-    "dist": 5.195,
-    "time": 25.31,
-    "avgHR": 147,
-    "maxHR": 179,
-    "np": 308,
-    "tss": 0.0,
-    "p20": null,
-    "name": "諏訪市 - 乳酸閾値"
   }
 ]
