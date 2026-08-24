@@ -342,6 +342,12 @@ function handleFileUpload(event) {
     }
     var existing = [];
     try { var r=localStorage.getItem('saved_activities'); if(r) existing=JSON.parse(r).activities||[]; } catch(e2){}
+    // Convert trail run to ラン before merge
+    incoming.forEach(function(a) {
+      if (a.type && (a.type.includes('トレイル') || a.type.toLowerCase().includes('trail'))) {
+        a.type = 'ラン';
+      }
+    });
     var mm = mergeActivities(existing, incoming);
     var snap = { activities: mm.merged, label: 'Garmin CSV', savedAt: new Date().toISOString(), count: mm.merged.length };
     try { localStorage.setItem('saved_activities', JSON.stringify(snap)); checkSavedData(); } catch(e3){}
@@ -408,7 +414,7 @@ function estimateTSS(a) {
   if (a.tss > 0) return a.tss;
   const h = a.time / 60;
   if (h <= 0) return 0;
-  if (a.np && (a.type.includes('ラン') || a.type.includes('トレッドミル') || a.type.includes('トレラン'))) {
+  if (a.np && (a.type.includes('ラン') || a.type.includes('トレッドミル') || a.type.includes('トレイル') || a.type.includes('トレラン'))) {
     const IF = a.np / rFTP; return Math.round(IF*IF*h*100);
   }
   if (a.type.includes('バイク') || a.type.includes('サイクリング')) {
@@ -451,7 +457,7 @@ function buildTimeSeries(activities, startDate, endDate) {
   activities.forEach(a => {
     if (!dayMap[a.date]) dayMap[a.date] = {run:0,bike:0,other:0,vo2:null,ftp:null};
     const t = estimateTSS(a);
-    if (a.type.includes('ラン')||a.type.includes('トレッドミル')) dayMap[a.date].run += t;
+    if (a.type.includes('ラン')||a.type.includes('トレッドミル')||a.type.includes('トレイル')) dayMap[a.date].run += t;
     else if (a.type.includes('バイク')||a.type.includes('サイクリング')) dayMap[a.date].bike += t;
     else dayMap[a.date].other += t;
     const v = estimateVO2(a);
@@ -938,7 +944,7 @@ function disconnect() {
 // ICU activity type mapping
 function icuToActivity(a) {
   var typeMap = {
-    Run: 'ラン', VirtualRun: 'ラン', TrailRun: 'ラン', trail_running: 'ラン',
+    Run: 'ラン', VirtualRun: 'ラン', TrailRun: 'ラン', trail_running: 'ラン', trail_run: 'ラン',
     Treadmill: 'トレッドミル',
     Ride: 'ロードサイクリング',
     VirtualRide: '仓想サイクリング',
@@ -1049,7 +1055,30 @@ function checkSavedData() {
   } catch(e) {}
 }
 
+// Migrate: convert all trail run types to ラン in saved data
+function migrateTrailRun() {
+  try {
+    var raw = localStorage.getItem('saved_activities');
+    if (!raw) return;
+    var snap = JSON.parse(raw);
+    var acts = snap.activities || [];
+    var changed = 0;
+    acts.forEach(function(a) {
+      if (a.type && (a.type.includes('トレイル') || a.type.toLowerCase().includes('trail'))) {
+        a.type = 'ラン';
+        changed++;
+      }
+    });
+    if (changed > 0) {
+      snap.activities = acts;
+      localStorage.setItem('saved_activities', JSON.stringify(snap));
+      console.log('Migrated ' + changed + ' trail run activities to ラン');
+    }
+  } catch(e) {}
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
+  migrateTrailRun();
   checkSavedData();
   const params = new URLSearchParams(window.location.search);
   const code = params.get('code');
