@@ -138,8 +138,6 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
     <h1>トレーニング分析</h1>
     <p>StravaまたはGarminのデータを接続して<br>PMC・VO2max・FTPの推移を分析します</p>
     <div class="connect-btns">
-      <button class="btn-primary" onclick="loadIntervalsJson()">📊 最新データを見る</button>
-      <div class="divider-or">または</div>
       <button class="btn-strava" onclick="startStravaAuth()">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 2 12.872h4.168"/></svg>
         Stravaで接続
@@ -410,7 +408,7 @@ function estimateTSS(a) {
   if (a.tss > 0) return a.tss;
   const h = a.time / 60;
   if (h <= 0) return 0;
-  if (a.np && (a.type.includes('ラン') || a.type.includes('トレッドミル'))) {
+  if (a.np && (a.type.includes('ラン') || a.type.includes('トレッドミル') || a.type.includes('トレラン'))) {
     const IF = a.np / rFTP; return Math.round(IF*IF*h*100);
   }
   if (a.type.includes('バイク') || a.type.includes('サイクリング')) {
@@ -882,20 +880,6 @@ async function fetchGarminNow() {
 
   showScreen('oauth', 'Garminデータを取得中（約30秒）...');
 
-  // Record the most recent run BEFORE dispatching, so we can tell it apart
-  // from the run this click is about to create (avoids treating an old,
-  // already-completed run as the result of this click).
-  var beforeId = null;
-  try {
-    var beforeRes = await fetch(
-      'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/' + WORKFLOW + '/runs?per_page=1',
-      { headers: headers }
-    );
-    var beforeJson = await beforeRes.json();
-    var beforeLatest = beforeJson.workflow_runs && beforeJson.workflow_runs[0];
-    beforeId = beforeLatest ? beforeLatest.id : null;
-  } catch(e) {}
-
   // Trigger workflow
   var triggerRes = await fetch(
     'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/' + WORKFLOW + '/dispatches',
@@ -913,23 +897,23 @@ async function fetchGarminNow() {
     showScreen('connect'); return;
   }
 
-  // Wait for a NEW run (id different from beforeId) to appear and complete
-  // (poll every 5s, max 2 minutes)
+  // Wait for completion (poll every 5s, max 90s)
+  await new Promise(function(r){ setTimeout(r, 6000); });
   var done = false;
   var success = false;
-  for (var i = 0; i < 24; i++) {
-    await new Promise(function(r){ setTimeout(r, 5000); });
+  for (var i = 0; i < 16; i++) {
     var runsRes = await fetch(
-      'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/' + WORKFLOW + '/runs?per_page=5',
+      'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/' + WORKFLOW + '/runs?per_page=1',
       { headers: headers }
     );
-    var runsJson = await runsRes.json();
-    var newRun = (runsJson.workflow_runs || []).find(function(w){ return w.id !== beforeId; });
-    if (newRun && newRun.status === 'completed') {
+    var runs = await runsRes.json();
+    var latest = runs.workflow_runs && runs.workflow_runs[0];
+    if (latest && latest.status === 'completed') {
       done = true;
-      success = newRun.conclusion === 'success';
+      success = latest.conclusion === 'success';
       break;
     }
+    await new Promise(function(r){ setTimeout(r, 5000); });
   }
 
   if (!done || !success) {
@@ -954,7 +938,7 @@ function disconnect() {
 // ICU activity type mapping
 function icuToActivity(a) {
   var typeMap = {
-    Run: 'ラン', VirtualRun: 'ラン', TrailRun: 'ラン',
+    Run: 'ラン', VirtualRun: 'ラン', TrailRun: 'ラン', trail_running: 'ラン',
     Treadmill: 'トレッドミル',
     Ride: 'ロードサイクリング',
     VirtualRide: '仓想サイクリング',
@@ -981,21 +965,6 @@ function icuToActivity(a) {
   };
 }
 
-// fetch_garmin.py already writes activities.json in the app's native
-// shape ({type,date,dist,time,avgHR,...}); fetch-intervals.yml writes the
-// raw Intervals.icu API shape ({start_date_local,moving_time,...}) to the
-// same file. Detect which one we got instead of assuming ICU's shape.
-function normalizeActivity(a) {
-  if (a && typeof a.date === 'string' && a.time !== undefined) {
-    return {
-      type: a.type || 'その他', date: a.date, dist: a.dist || 0, time: a.time || 0,
-      avgHR: a.avgHR || null, maxHR: a.maxHR || null, np: a.np || null,
-      tss: a.tss || 0, p20: a.p20 || null, name: a.name || ''
-    };
-  }
-  return icuToActivity(a);
-}
-
 function activityKey(a) {
   return a.date + '|' + a.type + '|' + Math.round(a.time);
 }
@@ -1014,9 +983,9 @@ function mergeActivities(existing, incoming) {
 }
 
 async function loadIntervalsJson() {
-  showScreen('oauth', 'データ読み込み中...');
+  showScreen('oauth', 'Intervals.icuからデータ読み込み中...');
   try {
-    var res = await fetch('https://raw.githubusercontent.com/chichoudoufu/training-readiness/main/activities.json?t=' + Date.now());
+    var res = await fetch('./activities.json?t=' + Date.now());
     if (!res.ok) {
       alert('activities.json not found. Run GitHub Actions first.');
       showScreen('connect'); return;
@@ -1026,18 +995,13 @@ async function loadIntervalsJson() {
       alert('activities.json is empty. Run GitHub Actions.');
       showScreen('connect'); return;
     }
-    // activities.json is already the full, authoritative dataset (fetch_garmin.py
-    // rewrites it in full each run) -- replace the local cache with it instead of
-    // merging with whatever was there before. Merging only ever added entries and
-    // never dropped stale ones, so the local snapshot grew unboundedly and drifted
-    // out of sync between devices (each device accumulated its own history).
-    var activities = data.map(normalizeActivity)
-      .filter(function(a){ return a && a.date && a.time > 0; })
-      .map(function(a){ return Object.assign({}, a, { source: 'garmin' }); })
-      .sort(function(a,b){ return b.date.localeCompare(a.date); });
-    var snap = { activities: activities, label: 'Garmin', savedAt: new Date().toISOString(), count: activities.length };
+    var activities = data.map(icuToActivity).filter(function(a){ return a && a.time > 0; });
+    var existing = [];
+    try { var r2 = localStorage.getItem('saved_activities'); if (r2) existing = JSON.parse(r2).activities || []; } catch(e2) {}
+    var mm = mergeActivities(existing, activities);
+    var snap = { activities: mm.merged, label: 'Intervals.icu', savedAt: new Date().toISOString(), count: mm.merged.length };
     try { localStorage.setItem('saved_activities', JSON.stringify(snap)); checkSavedData(); } catch(e3) {}
-    renderDashboard(activities, 'Garmin - ' + activities.length + ' activities');
+    renderDashboard(mm.merged, 'Intervals.icu - ' + mm.merged.length + ' activities');
   } catch(e) {
     alert('Error: ' + e.message);
     showScreen('connect');
