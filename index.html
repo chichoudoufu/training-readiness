@@ -136,7 +136,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
   <div class="connect-card">
     <div class="connect-icon">📊</div>
     <h1>トレーニング分析</h1>
-    <p style="font-size:10px;color:var(--text3);margin-top:-8px">BUILD-004</p>
+    <p style="font-size:10px;color:var(--text3);margin-top:-8px">BUILD-005</p>
     <p>StravaまたはGarminのデータを接続して<br>PMC・VO2max・FTPの推移を分析します</p>
     <div class="connect-btns">
       <button class="btn-strava" onclick="startStravaAuth()">
@@ -872,7 +872,7 @@ function getGithubPAT() {
   return pat ? pat.trim() : null;
 }
 
-var BUILD_004_LOG = '[BUILD-004]';
+var BUILD_004_LOG = '[BUILD-005]';
 async function fetchGarminNow() {
   var pat = getGithubPAT();
   if (!pat) return;
@@ -993,30 +993,28 @@ function mergeActivities(existing, incoming) {
 }
 
 async function loadIntervalsJson() {
-  showScreen('oauth', 'Intervals.icuからデータ読み込み中...');
+  showScreen('oauth', 'Garminデータ読み込み中...');
   try {
-    // Use GitHub Contents API to bypass CDN cache completely
-    var apiRes = await fetch('https://api.github.com/repos/chichoudoufu/training-readiness/contents/activities.json', {
-      headers: { 'Accept': 'application/vnd.github.raw+json', 'Cache-Control': 'no-cache' }
-    });
-    var res = apiRes; // compatibility
+    // Simple fetch from raw GitHub - no custom headers to avoid CORS issues
+    var url = 'https://raw.githubusercontent.com/chichoudoufu/training-readiness/main/activities.json?' + Date.now();
+    var res = await fetch(url);
     if (!res.ok) {
-      alert('activities.json not found. Run GitHub Actions first.');
+      alert('activities.json が見つかりません (' + res.status + '). GitHub Actionsを実行してください。');
       showScreen('connect'); return;
     }
     var data = await res.json();
     if (!Array.isArray(data) || data.length === 0) {
-      alert('activities.json is empty. Run GitHub Actions.');
+      alert('activities.jsonが空です。GitHub Actionsを実行してください。');
       showScreen('connect'); return;
     }
-    var activities = data.map(icuToActivity).filter(function(a){ return a && a.time > 0; });
+    console.log('[BUILD-005] Fetched:', data.length, 'Latest:', data[0] && data[0].date);
     var existing = [];
-    try { var r2 = localStorage.getItem('saved_activities'); if (r2) existing = JSON.parse(r2).activities || []; } catch(e2) {}
-    var mm = mergeActivities(existing, activities);
-    var snap = { activities: mm.merged, label: 'Intervals.icu', savedAt: new Date().toISOString(), count: mm.merged.length };
+    try { var raw = localStorage.getItem('saved_activities'); if (raw) existing = JSON.parse(raw).activities || []; } catch(e2) {}
+    var mm = mergeActivities(existing, data);
+    var snap = { activities: mm.merged, label: 'Garmin', savedAt: new Date().toISOString(), count: mm.merged.length };
     try { localStorage.setItem('saved_activities', JSON.stringify(snap)); checkSavedData(); } catch(e3) {}
     var latestDate = mm.merged.length ? mm.merged[0].date : '?';
-    console.log('Fetched:', data.length, 'Merged:', mm.merged.length, 'Added:', mm.added, 'Latest:', latestDate);
+    console.log('[BUILD-005] Merged:', mm.merged.length, 'Added:', mm.added, 'Latest:', latestDate);
     renderDashboard(mm.merged, 'Garmin (' + mm.merged.length + '件 / 最新: ' + latestDate + ' / +' + mm.added + '件追加)');
   } catch(e) {
     alert('Error: ' + e.message);
@@ -1024,102 +1022,4 @@ async function loadIntervalsJson() {
   }
 }
 
-var _currentActivities = null;
-var _currentLabel = null;
 
-function saveCurrentData() {
-  if (!_currentActivities || !_currentActivities.length) { alert('No data to save'); return; }
-  var snap = { activities: _currentActivities, label: _currentLabel || 'Manual', savedAt: new Date().toISOString(), count: _currentActivities.length };
-  try {
-    localStorage.setItem('saved_activities', JSON.stringify(snap));
-    checkSavedData();
-    alert('Saved ' + _currentActivities.length + ' activities');
-  } catch(e) { alert('Save failed: ' + e.message); }
-}
-
-function loadSavedData() {
-  var raw = localStorage.getItem('saved_activities');
-  if (!raw) { alert('No saved data'); return; }
-  try {
-    var snap = JSON.parse(raw);
-    var d = new Date(snap.savedAt).toLocaleString('ja-JP');
-    renderDashboard(snap.activities, (snap.label || 'Saved') + ' [' + d + ']');
-  } catch(e) { alert('Load failed: ' + e.message); }
-}
-
-function checkSavedData() {
-  var raw = localStorage.getItem('saved_activities');
-  if (!raw) return;
-  try {
-    var snap = JSON.parse(raw);
-    var d = new Date(snap.savedAt).toLocaleDateString('ja-JP');
-    var acts = snap.activities || [];
-    var newest = acts.length ? acts[0].date : '-';
-    var oldest = acts.length ? acts[acts.length-1].date : '-';
-    var btn = document.getElementById('btn-saved');
-    var div = document.getElementById('div-saved');
-    var info = document.getElementById('saved-info');
-    if (btn) btn.style.display = 'flex';
-    if (div) div.style.display = 'flex';
-    if (info) info.textContent = snap.count + ' activities saved (' + oldest + ' to ' + newest + ', updated ' + d + ')';
-  } catch(e) {}
-}
-
-// Migrate: convert all trail run types to ラン in saved data
-function migrateTrailRun() {
-  try {
-    var raw = localStorage.getItem('saved_activities');
-    if (!raw) return;
-    var snap = JSON.parse(raw);
-    var acts = snap.activities || [];
-    var changed = 0;
-    acts.forEach(function(a) {
-      if (a.type && (a.type.includes('トレイル') || a.type.toLowerCase().includes('trail'))) {
-        a.type = 'ラン';
-        changed++;
-      }
-    });
-    if (changed > 0) {
-      snap.activities = acts;
-      localStorage.setItem('saved_activities', JSON.stringify(snap));
-      console.log('Migrated ' + changed + ' trail run activities to ラン');
-    }
-  } catch(e) {}
-}
-
-window.addEventListener('DOMContentLoaded', async () => {
-  migrateTrailRun();
-  checkSavedData();
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get('code');
-
-  if (code) {
-    await handleOAuthCallback(code);
-  } else {
-    showScreen('connect');
-  }
-});
-</script>
-</body>
-</html>    // GitHub Contents API with base64 decode - BUILD-004
-    var apiRes = await fetch('https://api.github.com/repos/chichoudoufu/training-readiness/contents/activities.json', {
-      headers: { 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }
-    });
-    if (!apiRes.ok) {
-      alert('GitHub API error ' + apiRes.status + '. Run GitHub Actions first.');
-      showScreen('connect'); return;
-    }
-    var meta = await apiRes.json();
-    var data;
-    try {
-      var b64 = (meta.content || '').replace(/\n/g, '');
-      data = JSON.parse(atob(b64));
-    } catch(pe) {
-      alert('Parse error: ' + pe.message);
-      showScreen('connect'); return;
-    }
-    if (!Array.isArray(data) || data.length === 0) {
-      alert('activities.json is empty. Run GitHub Actions.');
-      showScreen('connect'); return;
-    }
-    console.log('[BUILD-004] Fetched:', data.length, 'Latest:', data[0] && data[0].date);
