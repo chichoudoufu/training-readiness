@@ -136,7 +136,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
   <div class="connect-card">
     <div class="connect-icon">📊</div>
     <h1>トレーニング分析</h1>
-    <p style="font-size:10px;color:var(--text3);margin-top:-8px">v2026.08.25</p>
+    <p style="font-size:10px;color:var(--text3);margin-top:-8px">BUILD-004</p>
     <p>StravaまたはGarminのデータを接続して<br>PMC・VO2max・FTPの推移を分析します</p>
     <div class="connect-btns">
       <button class="btn-strava" onclick="startStravaAuth()">
@@ -872,6 +872,7 @@ function getGithubPAT() {
   return pat ? pat.trim() : null;
 }
 
+var BUILD_004_LOG = '[BUILD-004]';
 async function fetchGarminNow() {
   var pat = getGithubPAT();
   if (!pat) return;
@@ -929,6 +930,8 @@ async function fetchGarminNow() {
   }
 
   // Load the updated activities.json
+  // Wait 3 seconds for GitHub to serve fresh activities.json
+  await new Promise(function(r){ setTimeout(r, 3000); });
   await loadIntervalsJson();
 }
 
@@ -992,7 +995,11 @@ function mergeActivities(existing, incoming) {
 async function loadIntervalsJson() {
   showScreen('oauth', 'Intervals.icuからデータ読み込み中...');
   try {
-    var res = await fetch('https://raw.githubusercontent.com/chichoudoufu/training-readiness/main/activities.json?t=' + Date.now());
+    // Use GitHub Contents API to bypass CDN cache completely
+    var apiRes = await fetch('https://api.github.com/repos/chichoudoufu/training-readiness/contents/activities.json', {
+      headers: { 'Accept': 'application/vnd.github.raw+json', 'Cache-Control': 'no-cache' }
+    });
+    var res = apiRes; // compatibility
     if (!res.ok) {
       alert('activities.json not found. Run GitHub Actions first.');
       showScreen('connect'); return;
@@ -1009,7 +1016,8 @@ async function loadIntervalsJson() {
     var snap = { activities: mm.merged, label: 'Intervals.icu', savedAt: new Date().toISOString(), count: mm.merged.length };
     try { localStorage.setItem('saved_activities', JSON.stringify(snap)); checkSavedData(); } catch(e3) {}
     var latestDate = mm.merged.length ? mm.merged[0].date : '?';
-    renderDashboard(mm.merged, 'Garmin (' + mm.merged.length + '件 / 最新データ: ' + latestDate + ')');
+    console.log('Fetched:', data.length, 'Merged:', mm.merged.length, 'Added:', mm.added, 'Latest:', latestDate);
+    renderDashboard(mm.merged, 'Garmin (' + mm.merged.length + '件 / 最新: ' + latestDate + ' / +' + mm.added + '件追加)');
   } catch(e) {
     alert('Error: ' + e.message);
     showScreen('connect');
@@ -1093,4 +1101,25 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 </script>
 </body>
-</html>
+</html>    // GitHub Contents API with base64 decode - BUILD-004
+    var apiRes = await fetch('https://api.github.com/repos/chichoudoufu/training-readiness/contents/activities.json', {
+      headers: { 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }
+    });
+    if (!apiRes.ok) {
+      alert('GitHub API error ' + apiRes.status + '. Run GitHub Actions first.');
+      showScreen('connect'); return;
+    }
+    var meta = await apiRes.json();
+    var data;
+    try {
+      var b64 = (meta.content || '').replace(/\n/g, '');
+      data = JSON.parse(atob(b64));
+    } catch(pe) {
+      alert('Parse error: ' + pe.message);
+      showScreen('connect'); return;
+    }
+    if (!Array.isArray(data) || data.length === 0) {
+      alert('activities.json is empty. Run GitHub Actions.');
+      showScreen('connect'); return;
+    }
+    console.log('[BUILD-004] Fetched:', data.length, 'Latest:', data[0] && data[0].date);
