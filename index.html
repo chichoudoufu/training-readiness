@@ -1007,7 +1007,8 @@ async function loadIntervalsJson() {
     var mm = mergeActivities(existing, activities);
     var snap = { activities: mm.merged, label: 'Intervals.icu', savedAt: new Date().toISOString(), count: mm.merged.length };
     try { localStorage.setItem('saved_activities', JSON.stringify(snap)); checkSavedData(); } catch(e3) {}
-    renderDashboard(mm.merged, 'Intervals.icu - ' + mm.merged.length + ' activities');
+    var latestDate = mm.merged.length ? mm.merged[0].date : '?';
+    renderDashboard(mm.merged, 'Garmin (' + mm.merged.length + '件 / 最新データ: ' + latestDate + ')');
   } catch(e) {
     alert('Error: ' + e.message);
     showScreen('connect');
