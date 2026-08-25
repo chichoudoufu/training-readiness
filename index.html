@@ -161,7 +161,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
 <div id="screen-oauth" style="display:none">
   <div class="oauth-box">
     <div class="spinner"></div>
-    <p style="color:var(--text2)">Stravaと接続中...</p>
+    <p id="oauth-msg" style="color:var(--text2)">接続中...</p>
   </div>
 </div>
 
@@ -195,7 +195,9 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; 
 // SCREEN ROUTING
 // ─────────────────────────────────────────────
 const screens = ['connect','oauth','dashboard'];
-function showScreen(name) {
+function showScreen(name, msg) {
+  var om = document.getElementById('oauth-msg');
+  if (om && name === 'oauth') om.textContent = msg || '接続中...';
   screens.forEach(s => {
     const el = document.getElementById('screen-' + s);
     if (el) el.style.display = s === name ? (s === 'dashboard' ? 'block' : 'flex') : 'none';
@@ -491,6 +493,8 @@ function destroyCharts() {
 }
 
 function renderDashboard(activities, sourceLabel) {
+  _currentActivities = activities;
+  _currentLabel = sourceLabel;
   destroyCharts();
   showScreen('dashboard');
   document.getElementById('source-label').textContent = sourceLabel;
@@ -916,13 +920,7 @@ function migrateTrailRun(){
   }catch(e){}
 }
 
-// Track current activities for save feature
-var _origRender=renderDashboard;
-function renderDashboard(activities,sourceLabel){
-  _currentActivities=activities;
-  _currentLabel=sourceLabel;
-  _origRender(activities,sourceLabel);
-}
+// _currentActivities tracked inside renderDashboard
 
 window.addEventListener('DOMContentLoaded', async function() {
   migrateTrailRun();
