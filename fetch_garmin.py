@@ -13,50 +13,68 @@ except Exception as e:
     print(f"Login failed: {e}", file=sys.stderr)
     sys.exit(1)
 
-# Step 1: Get the 100 most recent activities first (most reliable for latest data)
 all_activities = []
+seen_ids = set()
+
+def add_activities(acts, label):
+    added = 0
+    for a in (acts or []):
+        aid = a.get('activityId')
+        key = aid if aid else str(a.get('startTimeLocal','')) + a.get('activityName','')
+        if key not in seen_ids:
+            seen_ids.add(key)
+            all_activities.append(a)
+            added += 1
+    if added:
+        dates = [a.get('startTimeLocal','')[:10] for a in acts if a.get('startTimeLocal')]
+        dates = [d for d in dates if d]
+        if dates:
+            print(f"{label}: {added} new, latest={max(dates)}")
+    return added
+
+# 1. Most recent 200 activities (catches latest regardless of date indexing)
 try:
-    recent = client.get_activities(0, 100)
-    all_activities.extend(recent)
-    if recent:
-        latest = recent[0].get('startTimeLocal', '')[:10]
-        print(f"Recent 100: latest date = {latest}")
-    else:
-        print("Recent 100: empty")
+    recent = client.get_activities(0, 200)
+    add_activities(recent, "Recent 200")
 except Exception as e:
     print(f"Recent fetch warning: {e}")
 
-# Step 2: Get historical data by date range
-end = datetime.today() + timedelta(days=1)
-start = end - timedelta(days=152)
-print(f"Fetching date range {start.strftime('%Y-%m-%d')} to {end.strftime('%Y-%m-%d')}")
+# 2. Try get_last_activity for the absolute latest
+try:
+    last = client.get_last_activity()
+    if last:
+        add_activities([last], "Last activity")
+        print(f"  Last activity date: {last.get('startTimeLocal','')[:10]}")
+except Exception as e:
+    print(f"Last activity warning: {e}")
 
+# 3. Get activities for specific recent dates
+today = datetime.today()
+for days_back in range(5):
+    target = today - timedelta(days=days_back)
+    date_str = target.strftime('%Y-%m-%d')
+    try:
+        day_acts = client.get_activities_fordate(date_str)
+        added = add_activities(day_acts, f"Date {date_str}")
+    except Exception as e:
+        pass
+
+# 4. Historical date range fetch
+end = today + timedelta(days=1)
+start = end - timedelta(days=152)
 try:
     dated = client.get_activities_by_date(
         start.strftime('%Y-%m-%d'),
         end.strftime('%Y-%m-%d')
     )
-    print(f"Date range fetch: {len(dated)} activities")
-    all_activities.extend(dated)
+    added = add_activities(dated, f"Date range {start.strftime('%Y-%m-%d')} to {end.strftime('%Y-%m-%d')}")
 except Exception as e:
     print(f"Date range fetch warning: {e}")
 
-# Merge by activityId (deduplicate)
-seen_ids = set()
-unique = []
-for a in all_activities:
-    aid = a.get('activityId')
-    if aid and aid not in seen_ids:
-        seen_ids.add(aid)
-        unique.append(a)
-    elif not aid:
-        unique.append(a)
-
-print(f"Total unique: {len(unique)} activities")
+print(f"Total unique activities: {len(all_activities)}")
 
 type_map = {
-    'running': '\u30e9\u30f3',
-    'trail_running': '\u30e9\u30f3',
+    'running': '\u30e9\u30f3', 'trail_running': '\u30e9\u30f3',
     'treadmill_running': '\u30c8\u30ec\u30c3\u30c9\u30df\u30eb',
     'cycling': '\u30ed\u30fc\u30c9\u30b5\u30a4\u30af\u30ea\u30f3\u30b0',
     'road_biking': '\u30ed\u30fc\u30c9\u30b5\u30a4\u30af\u30ea\u30f3\u30b0',
@@ -73,11 +91,10 @@ type_map = {
     'jump_rope': '\u306a\u308f\u3068\u3073',
     'yoga': '\u30e8\u30ac',
     'fitness_equipment': '\u30d5\u30a3\u30c3\u30c8\u30cd\u30b9',
-    'elliptical': '\u30a8\u30ea\u30d7\u30c6\u30a3\u30ab\u30eb',
 }
 
 out = []
-for a in unique:
+for a in all_activities:
     atype = a.get('activityType', {}).get('typeKey', 'other')
     jp_type = type_map.get(atype, atype)
     dist_m = a.get('distance', 0) or 0
@@ -102,7 +119,7 @@ for a in unique:
 
 out.sort(key=lambda x: x['date'], reverse=True)
 if out:
-    print(f"Date range in output: {out[-1]['date']} to {out[0]['date']}")
+    print(f"Output date range: {out[-1]['date']} to {out[0]['date']}")
 
 with open('activities.json', 'w') as f:
     json.dump(out, f, ensure_ascii=False, indent=2)
