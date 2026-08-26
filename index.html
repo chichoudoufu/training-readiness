@@ -667,6 +667,7 @@ function renderChart(id) {
       </div>
       <div class="chart-wrap" style="height:160px"><canvas id="c1b" role="img" aria-label="デイリーTSS棒グラフ"></canvas></div>
       <p class="section-note">※ GarminのTSSが0のアクティビティは心拍・時間から推計</p>`;
+    const pmcYAxisWidth = 46;
     charts.c1 = new Chart(document.getElementById('c1'), {
       type:'line',
       data:{labels:ts.labels,datasets:[
@@ -678,8 +679,8 @@ function renderChart(id) {
         plugins:{legend:{display:false}},
         scales:{
           x:{ticks:{color:'#4a5168',font:{size:10},maxTicksLimit:12},grid:{color:gc}},
-          yL:{position:'left',title:{display:true,text:'CTL / ATL',color:'#4a5168',font:{size:10}},min:0,max:pmcMax,ticks:{color:'#4a5168'},grid:{color:gc}},
-          yR:{position:'right',title:{display:true,text:'TSB',color:'#4a5168',font:{size:10}},min:tsbMin,max:tsbMax,ticks:{color:'#4a5168'},grid:{drawOnChartArea:false}},
+          yL:{position:'left',title:{display:true,text:'CTL / ATL',color:'#4a5168',font:{size:10}},min:0,max:pmcMax,ticks:{color:'#4a5168'},grid:{color:gc},afterFit:s=>{s.width=pmcYAxisWidth;}},
+          yR:{position:'right',title:{display:true,text:'TSB',color:'#4a5168',font:{size:10}},min:tsbMin,max:tsbMax,ticks:{color:'#4a5168'},grid:{drawOnChartArea:false},afterFit:s=>{s.width=pmcYAxisWidth;}},
         }
       }
     });
@@ -691,10 +692,11 @@ function renderChart(id) {
         {label:'その他',data:ts.other,backgroundColor:'rgba(62,207,142,0.7)',stack:'s',borderRadius:2},
       ]},
       options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        layout:{padding:{right:pmcYAxisWidth}},
         plugins:{legend:{display:false}},
         scales:{
           x:{stacked:true,ticks:{color:'#4a5168',font:{size:10},maxTicksLimit:12},grid:{color:gc}},
-          y:{stacked:true,min:0,max:tssMax,title:{display:true,text:'TSS',color:'#4a5168',font:{size:10}},ticks:{color:'#4a5168'},grid:{color:gc}},
+          y:{stacked:true,min:0,max:tssMax,title:{display:true,text:'TSS',color:'#4a5168',font:{size:10}},ticks:{color:'#4a5168'},grid:{color:gc},afterFit:s=>{s.width=pmcYAxisWidth;}},
         }
       }
     });
