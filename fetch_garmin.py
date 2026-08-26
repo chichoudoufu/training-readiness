@@ -2,8 +2,16 @@ import json, os, sys
 from datetime import datetime, timedelta
 from garminconnect import Garmin
 
-email = os.environ['GARMIN_EMAIL']
-password = os.environ['GARMIN_PASSWORD']
+email = os.environ.get('GARMIN_EMAIL')
+password = os.environ.get('GARMIN_PASSWORD')
+
+if not email or not password:
+    print("GARMIN_EMAIL and GARMIN_PASSWORD must be set before running this script.", file=sys.stderr)
+    print("Example:", file=sys.stderr)
+    print("  set GARMIN_EMAIL=your_email@example.com", file=sys.stderr)
+    print("  set GARMIN_PASSWORD=your_password", file=sys.stderr)
+    print("  python fetch_garmin.py", file=sys.stderr)
+    sys.exit(1)
 
 try:
     client = Garmin(email, password)
