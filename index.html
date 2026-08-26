@@ -480,7 +480,7 @@ function buildTimeSeries(activities, startDate, endDate) {
     return w.length ? +(w.reduce((a,b)=>a+b,0)/w.length).toFixed(1) : null;
   });
 
-  return { dates, labels: dates.map(d=>d.slice(5)), ctl, atl, tsb, run, bike, other, vo2, vo2MA, ftp };
+  return { dates, labels: dates.map(d=>d.slice(5)), ctl, atl, tsb, run, bike, other, vo2, vo2MA, ftp, _rawActivities: activities };
 }
 
 // ─────────────────────────────────────────────
