@@ -50,7 +50,7 @@ type_map = {
     'cycling': '\u30ed\u30fc\u30c9\u30b5\u30a4\u30af\u30ea\u30f3\u30b0',
     'road_biking': '\u30ed\u30fc\u30c9\u30b5\u30a4\u30af\u30ea\u30f3\u30b0',
     'indoor_cycling': '\u5c4b\u5185\u30d0\u30a4\u30af',
-    'virtual_ride': '\u4ed3\u60f3\u30b5\u30a4\u30af\u30ea\u30f3\u30b0',
+    'virtual_ride': '\u4eee\u60f3\u30b5\u30a4\u30af\u30ea\u30f3\u30b0',
     'mountain_biking': '\u30de\u30a6\u30f3\u30c6\u30f3\u30d0\u30a4\u30af',
     'swimming': '\u30d7\u30fc\u30eb\u30b9\u30a4\u30e0',
     'open_water_swimming': '\u5c4b\u5916\u30b9\u30a4\u30e0',
