@@ -1,5 +1,53 @@
 [
   {
+    "type": "筋力トレーニング",
+    "date": "2026-08-26",
+    "dist": 0.0,
+    "time": 1.18,
+    "avgHR": 133,
+    "maxHR": 144,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "筋トレ"
+  },
+  {
+    "type": "仓想サイクリング",
+    "date": "2026-08-26",
+    "dist": 15.515,
+    "time": 30.4,
+    "avgHR": 134,
+    "maxHR": 168,
+    "np": 179,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Saint-Martin-du-Puy 仮想サイクリング"
+  },
+  {
+    "type": "プールスイム",
+    "date": "2026-08-25",
+    "dist": 1.9,
+    "time": 77.83,
+    "avgHR": 113,
+    "maxHR": 154,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "プールスイム"
+  },
+  {
+    "type": "筋力トレーニング",
+    "date": "2026-08-25",
+    "dist": 0.0,
+    "time": 15.83,
+    "avgHR": 84,
+    "maxHR": 135,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "筋トレ"
+  },
+  {
     "type": "仓想サイクリング",
     "date": "2026-08-25",
     "dist": 18.21,
@@ -3958,17 +4006,5 @@
     "tss": 0.0,
     "p20": null,
     "name": "佐久穂町 ウォーク"
-  },
-  {
-    "type": "resort_skiing",
-    "date": "2026-03-28",
-    "dist": 35.429,
-    "time": 410.1,
-    "avgHR": 102,
-    "maxHR": 159,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "佐久穂町 リゾートスキー"
   }
 ]
