@@ -839,7 +839,7 @@ async function loadGarminJson() {
   } catch(e) { alert('Error: '+e.message); showScreen('connect'); }
 }
 
-function activityKey(a){ return a.date+'|'+a.type+'|'+Math.round(a.time); }
+function activityKey(a){ return a.date+'|'+Math.round(a.time*10)+'|'+Math.round((a.dist||0)*1000); }
 
 function mergeActivities(existing,incoming){
   var map={};
@@ -848,7 +848,7 @@ function mergeActivities(existing,incoming){
   incoming.forEach(function(a){
     var k=activityKey(a);
     if(!map[k]){map[k]=a;added++;}
-    else if((a.tss>0&&!map[k].tss)||(a.avgHR&&!map[k].avgHR)){map[k]=a;updated++;}
+    else if(a.type!==map[k].type||a.name!==map[k].name||(a.tss>0&&!map[k].tss)||(a.avgHR&&!map[k].avgHR)){map[k]=a;updated++;}
   });
   var merged=Object.values(map).sort(function(a,b){return b.date.localeCompare(a.date);});
   return{merged:merged,added:added,updated:updated};
