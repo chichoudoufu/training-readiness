@@ -1,5 +1,17 @@
 [
   {
+    "type": "table_tennis",
+    "date": "2026-08-29",
+    "dist": 0.487,
+    "time": 97.75,
+    "avgHR": 96,
+    "maxHR": 135,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "卓球"
+  },
+  {
     "type": "仮想サイクリング",
     "date": "2026-08-29",
     "dist": 10.472,
