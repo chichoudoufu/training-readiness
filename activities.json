@@ -4030,41 +4030,5 @@
     "tss": 0.0,
     "p20": null,
     "name": "諏訪市 ラン"
-  },
-  {
-    "type": "golf",
-    "date": "2026-04-04",
-    "dist": 5.144,
-    "time": 124.72,
-    "avgHR": 91,
-    "maxHR": 127,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "茅野市 ゴルフ"
-  },
-  {
-    "type": "golf",
-    "date": "2026-04-04",
-    "dist": 6.268,
-    "time": 141.12,
-    "avgHR": 93,
-    "maxHR": 123,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "茅野市 ゴルフ"
-  },
-  {
-    "type": "ラン",
-    "date": "2026-04-04",
-    "dist": 5.19,
-    "time": 28.39,
-    "avgHR": 141,
-    "maxHR": 157,
-    "np": 276,
-    "tss": 0.0,
-    "p20": null,
-    "name": "諏訪市 - ベース"
   }
 ]
