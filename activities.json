@@ -1,5 +1,29 @@
 [
   {
+    "type": "筋力トレーニング",
+    "date": "2026-09-09",
+    "dist": 0.0,
+    "time": 11.2,
+    "avgHR": 74,
+    "maxHR": 127,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "筋トレ"
+  },
+  {
+    "type": "ウォーク",
+    "date": "2026-09-09",
+    "dist": 0.331,
+    "time": 3.99,
+    "avgHR": 95,
+    "maxHR": 113,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "諏訪市 ウォーク"
+  },
+  {
     "type": "仮想サイクリング",
     "date": "2026-09-08",
     "dist": 9.742,
@@ -3958,65 +3982,5 @@
     "tss": 0.0,
     "p20": null,
     "name": "Magong City ラン"
-  },
-  {
-    "type": "プールスイム",
-    "date": "2026-04-11",
-    "dist": 0.09,
-    "time": 3.0,
-    "avgHR": 101,
-    "maxHR": 117,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "プールスイム"
-  },
-  {
-    "type": "ロードサイクリング",
-    "date": "2026-04-11",
-    "dist": 3.744,
-    "time": 38.33,
-    "avgHR": 86,
-    "maxHR": 119,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Magong City バイク"
-  },
-  {
-    "type": "ウォーク",
-    "date": "2026-04-11",
-    "dist": 1.464,
-    "time": 18.58,
-    "avgHR": 94,
-    "maxHR": 105,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Magong City ウォーク"
-  },
-  {
-    "type": "ロードサイクリング",
-    "date": "2026-04-11",
-    "dist": 14.121,
-    "time": 66.62,
-    "avgHR": 113,
-    "maxHR": 149,
-    "np": 118,
-    "tss": 42.599998474121094,
-    "p20": null,
-    "name": "Magong City バイク"
-  },
-  {
-    "type": "ウォーク",
-    "date": "2026-04-11",
-    "dist": 2.307,
-    "time": 43.42,
-    "avgHR": 90,
-    "maxHR": 123,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Magong City ウォーク"
   }
 ]
