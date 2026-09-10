@@ -4006,41 +4006,5 @@
     "tss": 0.0,
     "p20": null,
     "name": "Magong City ウォーク"
-  },
-  {
-    "type": "マルチスポーツ",
-    "date": "2026-04-12",
-    "dist": 224.803,
-    "time": 701.15,
-    "avgHR": null,
-    "maxHR": 175,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Magong City マルチスポーツ"
-  },
-  {
-    "type": "屋外スイム",
-    "date": "2026-04-12",
-    "dist": 0.186,
-    "time": 4.11,
-    "avgHR": 114,
-    "maxHR": 132,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Magong City 屋外スイム"
-  },
-  {
-    "type": "ラン",
-    "date": "2026-04-12",
-    "dist": 0.156,
-    "time": 1.14,
-    "avgHR": 100,
-    "maxHR": 115,
-    "np": 260,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Magong City ラン"
   }
 ]
