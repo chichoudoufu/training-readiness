@@ -4018,17 +4018,5 @@
     "tss": 0.0,
     "p20": null,
     "name": "Magong City バイク"
-  },
-  {
-    "type": "ウォーク",
-    "date": "2026-04-13",
-    "dist": 2.043,
-    "time": 27.69,
-    "avgHR": 79,
-    "maxHR": 107,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Magong City ウォーク"
   }
 ]
