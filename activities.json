@@ -2,6 +2,18 @@
   {
     "type": "golf",
     "date": "2026-09-27",
+    "dist": 5.186,
+    "time": 147.42,
+    "avgHR": 88,
+    "maxHR": 119,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "諏訪市 ゴルフ"
+  },
+  {
+    "type": "golf",
+    "date": "2026-09-27",
     "dist": 5.819,
     "time": 165.81,
     "avgHR": 83,
