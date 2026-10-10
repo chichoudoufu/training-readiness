@@ -1,6 +1,42 @@
 [
   {
     "type": "ウォーク",
+    "date": "2026-10-10",
+    "dist": 2.376,
+    "time": 54.7,
+    "avgHR": 86,
+    "maxHR": 99,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Tamsui District ウォーク"
+  },
+  {
+    "type": "ロードサイクリング",
+    "date": "2026-10-10",
+    "dist": 5.203,
+    "time": 81.72,
+    "avgHR": 97,
+    "maxHR": 130,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Tamsui District バイク"
+  },
+  {
+    "type": "ラン",
+    "date": "2026-10-10",
+    "dist": 21.089,
+    "time": 143.69,
+    "avgHR": 163,
+    "maxHR": 184,
+    "np": 255,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Tamsui District トレイルラン"
+  },
+  {
+    "type": "ウォーク",
     "date": "2026-10-09",
     "dist": 1.471,
     "time": 16.65,
