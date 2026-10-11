@@ -1,5 +1,29 @@
 [
   {
+    "type": "ラン",
+    "date": "2026-10-11",
+    "dist": 9.326,
+    "time": 81.05,
+    "avgHR": 148,
+    "maxHR": 180,
+    "np": 221,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Tamsui District トレイルラン"
+  },
+  {
+    "type": "ラン",
+    "date": "2026-10-11",
+    "dist": 12.665,
+    "time": 95.03,
+    "avgHR": 148,
+    "maxHR": 183,
+    "np": 241,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Tamsui District トレイルラン"
+  },
+  {
     "type": "ウォーク",
     "date": "2026-10-10",
     "dist": 2.376,
@@ -4243,66 +4267,6 @@
     "avgHR": 123,
     "maxHR": 144,
     "np": 257,
-    "tss": 0.0,
-    "p20": null,
-    "name": "諏訪市 ラン"
-  },
-  {
-    "type": "トレッドミル",
-    "date": "2026-05-13",
-    "dist": 5.901,
-    "time": 32.11,
-    "avgHR": 143,
-    "maxHR": 172,
-    "np": 267,
-    "tss": 0.0,
-    "p20": null,
-    "name": "トレッドミル"
-  },
-  {
-    "type": "筋力トレーニング",
-    "date": "2026-05-13",
-    "dist": 0.0,
-    "time": 5.01,
-    "avgHR": 125,
-    "maxHR": 139,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "筋トレ"
-  },
-  {
-    "type": "屋内バイク",
-    "date": "2026-05-13",
-    "dist": 13.6,
-    "time": 30.03,
-    "avgHR": 143,
-    "maxHR": 163,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "屋内バイク"
-  },
-  {
-    "type": "プールスイム",
-    "date": "2026-05-13",
-    "dist": 1.0,
-    "time": 31.97,
-    "avgHR": 125,
-    "maxHR": 155,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "プールスイム"
-  },
-  {
-    "type": "ラン",
-    "date": "2026-05-13",
-    "dist": 5.206,
-    "time": 31.62,
-    "avgHR": 135,
-    "maxHR": 150,
-    "np": 256,
     "tss": 0.0,
     "p20": null,
     "name": "諏訪市 ラン"
