@@ -2,6 +2,30 @@
   {
     "type": "ウォーク",
     "date": "2026-10-12",
+    "dist": 3.364,
+    "time": 79.59,
+    "avgHR": 72,
+    "maxHR": 93,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Wenshan District ウォーク"
+  },
+  {
+    "type": "ウォーク",
+    "date": "2026-10-12",
+    "dist": 4.195,
+    "time": 74.64,
+    "avgHR": 83,
+    "maxHR": 123,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Zhongzheng District ウォーク"
+  },
+  {
+    "type": "ウォーク",
+    "date": "2026-10-12",
     "dist": 1.48,
     "time": 51.59,
     "avgHR": 72,
