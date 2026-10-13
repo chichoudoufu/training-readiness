@@ -1,6 +1,30 @@
 [
   {
     "type": "ウォーク",
+    "date": "2026-10-13",
+    "dist": 0.382,
+    "time": 10.25,
+    "avgHR": 68,
+    "maxHR": 74,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Wanhua District ウォーク"
+  },
+  {
+    "type": "ウォーク",
+    "date": "2026-10-13",
+    "dist": 3.055,
+    "time": 48.29,
+    "avgHR": 71,
+    "maxHR": 80,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Yonghe District ウォーク"
+  },
+  {
+    "type": "ウォーク",
     "date": "2026-10-12",
     "dist": 3.364,
     "time": 79.59,
@@ -4219,66 +4243,6 @@
     "avgHR": 129,
     "maxHR": 159,
     "np": 251,
-    "tss": 0.0,
-    "p20": null,
-    "name": "諏訪市 ラン"
-  },
-  {
-    "type": "筋力トレーニング",
-    "date": "2026-05-15",
-    "dist": 0.0,
-    "time": 8.64,
-    "avgHR": 119,
-    "maxHR": 145,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "筋トレ"
-  },
-  {
-    "type": "トレッドミル",
-    "date": "2026-05-15",
-    "dist": 5.285,
-    "time": 32.02,
-    "avgHR": 143,
-    "maxHR": 172,
-    "np": 239,
-    "tss": 0.0,
-    "p20": null,
-    "name": "トレッドミル"
-  },
-  {
-    "type": "屋内バイク",
-    "date": "2026-05-15",
-    "dist": 13.0,
-    "time": 30.19,
-    "avgHR": 133,
-    "maxHR": 155,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "屋内バイク"
-  },
-  {
-    "type": "プールスイム",
-    "date": "2026-05-15",
-    "dist": 0.9,
-    "time": 23.22,
-    "avgHR": 136,
-    "maxHR": 154,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "プールスイム"
-  },
-  {
-    "type": "ラン",
-    "date": "2026-05-15",
-    "dist": 5.205,
-    "time": 33.25,
-    "avgHR": 125,
-    "maxHR": 137,
-    "np": 244,
     "tss": 0.0,
     "p20": null,
     "name": "諏訪市 ラン"
