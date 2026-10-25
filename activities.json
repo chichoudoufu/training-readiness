@@ -1,5 +1,17 @@
 [
   {
+    "type": "ラン",
+    "date": "2026-10-25",
+    "dist": 21.296,
+    "time": 92.78,
+    "avgHR": 169,
+    "maxHR": 179,
+    "np": 340,
+    "tss": 0.0,
+    "p20": null,
+    "name": "諏訪市 - 第38回 諏訪湖マラソン"
+  },
+  {
     "type": "ヨガ",
     "date": "2026-10-23",
     "dist": 0.0,
@@ -4126,77 +4138,5 @@
     "tss": 0.0,
     "p20": null,
     "name": "トレッドミル"
-  },
-  {
-    "type": "ウォーク",
-    "date": "2026-05-27",
-    "dist": 1.386,
-    "time": 23.14,
-    "avgHR": 87,
-    "maxHR": 128,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Santa Rosa ウォーク"
-  },
-  {
-    "type": "プールスイム",
-    "date": "2026-05-27",
-    "dist": 0.255,
-    "time": 9.36,
-    "avgHR": 116,
-    "maxHR": 150,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "プールスイム"
-  },
-  {
-    "type": "筋力トレーニング",
-    "date": "2026-05-27",
-    "dist": 0.0,
-    "time": 0.3,
-    "avgHR": 111,
-    "maxHR": 116,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "筋トレ"
-  },
-  {
-    "type": "トレッドミル",
-    "date": "2026-05-27",
-    "dist": 4.006,
-    "time": 23.21,
-    "avgHR": 131,
-    "maxHR": 153,
-    "np": 246,
-    "tss": 0.0,
-    "p20": null,
-    "name": "トレッドミル"
-  },
-  {
-    "type": "屋内バイク",
-    "date": "2026-05-27",
-    "dist": 0.0,
-    "time": 2.51,
-    "avgHR": 90,
-    "maxHR": 101,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "屋内バイク"
-  },
-  {
-    "type": "golf",
-    "date": "2026-05-27",
-    "dist": 10.605,
-    "time": 147.06,
-    "avgHR": 69,
-    "maxHR": 102,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Silang ゴルフ"
   }
 ]
