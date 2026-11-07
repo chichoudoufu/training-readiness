@@ -4210,41 +4210,5 @@
     "tss": 0.0,
     "p20": null,
     "name": "Xuhui ラン"
-  },
-  {
-    "type": "ロードサイクリング",
-    "date": "2026-06-09",
-    "dist": 3.75,
-    "time": 40.68,
-    "avgHR": 70,
-    "maxHR": 100,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Xuhui バイク"
-  },
-  {
-    "type": "ウォーク",
-    "date": "2026-06-09",
-    "dist": 0.439,
-    "time": 12.61,
-    "avgHR": 66,
-    "maxHR": 81,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Xuhui ウォーク"
-  },
-  {
-    "type": "ウォーク",
-    "date": "2026-06-09",
-    "dist": 3.213,
-    "time": 107.15,
-    "avgHR": 66,
-    "maxHR": 87,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "ウォーク"
   }
 ]
