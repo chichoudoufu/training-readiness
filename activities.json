@@ -4198,29 +4198,5 @@
     "tss": 0.0,
     "p20": null,
     "name": "宮津市 仮想サイクリング"
-  },
-  {
-    "type": "ウォーク",
-    "date": "2026-06-10",
-    "dist": 8.568,
-    "time": 248.22,
-    "avgHR": 68,
-    "maxHR": 86,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Xuhui ウォーク"
-  },
-  {
-    "type": "ラン",
-    "date": "2026-06-10",
-    "dist": 5.238,
-    "time": 28.89,
-    "avgHR": 131,
-    "maxHR": 154,
-    "np": 268,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Xuhui ラン"
   }
 ]
