@@ -1,5 +1,17 @@
 [
   {
+    "type": "golf",
+    "date": "2026-11-15",
+    "dist": 8.228,
+    "time": 232.95,
+    "avgHR": 86,
+    "maxHR": 132,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "川上村 ゴルフ"
+  },
+  {
     "type": "筋力トレーニング",
     "date": "2026-11-15",
     "dist": 0.0,
@@ -4306,41 +4318,5 @@
     "tss": 0.0,
     "p20": null,
     "name": "Al Gharbia 仮想サイクリング"
-  },
-  {
-    "type": "筋力トレーニング",
-    "date": "2026-06-17",
-    "dist": 0.0,
-    "time": 7.81,
-    "avgHR": 103,
-    "maxHR": 137,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "筋トレ"
-  },
-  {
-    "type": "筋力トレーニング",
-    "date": "2026-06-17",
-    "dist": 0.0,
-    "time": 5.39,
-    "avgHR": 134,
-    "maxHR": 160,
-    "np": null,
-    "tss": 0.0,
-    "p20": null,
-    "name": "筋トレ"
-  },
-  {
-    "type": "仮想サイクリング",
-    "date": "2026-06-17",
-    "dist": 14.835,
-    "time": 30.42,
-    "avgHR": 140,
-    "maxHR": 177,
-    "np": 159,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Abu Dhabi 仮想サイクリング"
   }
 ]
