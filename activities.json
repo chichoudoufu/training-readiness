@@ -1,5 +1,41 @@
 [
   {
+    "type": "屋外スイム",
+    "date": "2026-11-19",
+    "dist": 0.323,
+    "time": 9.65,
+    "avgHR": 119,
+    "maxHR": 144,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Langkawi 屋外スイム"
+  },
+  {
+    "type": "ロードサイクリング",
+    "date": "2026-11-19",
+    "dist": 2.105,
+    "time": 8.98,
+    "avgHR": 91,
+    "maxHR": 103,
+    "np": 47,
+    "tss": 0.699999988079071,
+    "p20": null,
+    "name": "Langkawi ロードサイクリング"
+  },
+  {
+    "type": "ウォーク",
+    "date": "2026-11-19",
+    "dist": 2.771,
+    "time": 84.08,
+    "avgHR": 77,
+    "maxHR": 98,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Langkawi ウォーク"
+  },
+  {
     "type": "仮想サイクリング",
     "date": "2026-11-17",
     "dist": 10.804,
