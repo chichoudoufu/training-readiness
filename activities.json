@@ -1,5 +1,29 @@
 [
   {
+    "type": "ラン",
+    "date": "2026-11-22",
+    "dist": 1.699,
+    "time": 13.38,
+    "avgHR": 114,
+    "maxHR": 129,
+    "np": 213,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Langkawi - リカバリー"
+  },
+  {
+    "type": "ウォーク",
+    "date": "2026-11-22",
+    "dist": 0.824,
+    "time": 30.91,
+    "avgHR": 86,
+    "maxHR": 124,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Padang Matsirat ウォーク"
+  },
+  {
     "type": "屋外スイム",
     "date": "2026-11-21",
     "dist": 0.149,
