@@ -1,5 +1,17 @@
 [
   {
+    "type": "ウォーク",
+    "date": "2026-11-24",
+    "dist": 1.001,
+    "time": 70.11,
+    "avgHR": 67,
+    "maxHR": 85,
+    "np": null,
+    "tss": 0.0,
+    "p20": null,
+    "name": "Kuala Lumpur International Airport ウォーク"
+  },
+  {
     "type": "ラン",
     "date": "2026-11-22",
     "dist": 1.699,
@@ -4090,17 +4102,5 @@
     "tss": 0.0,
     "p20": null,
     "name": "諏訪市 ラン"
-  },
-  {
-    "type": "仮想サイクリング",
-    "date": "2026-06-26",
-    "dist": 10.069,
-    "time": 30.45,
-    "avgHR": 144,
-    "maxHR": 175,
-    "np": 167,
-    "tss": 0.0,
-    "p20": null,
-    "name": "Zurich 仮想サイクリング"
   }
 ]
